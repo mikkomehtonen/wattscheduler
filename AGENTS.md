@@ -36,15 +36,17 @@ uvicorn wattscheduler.main:app --reload
 ```
 
 ### Running Tests
+Test commands are executed in separate shells, so source .venv/bin/activate doesn’t persist. Do not use pip install -e . or --break-system-packages. Always run tests using venv binaries directly: .venv/bin/python -m pytest tests/ -v
+
 ```bash
 # Run all tests
-pytest
+.venv/bin/python -m pytest tests/ -v
 
 # Run a specific test file
-pytest tests/test_file.py
+.venv/bin/python -m pytest tests/test_file.py
 
 # Run a specific test function
-pytest tests/test_file.py::test_function_name
+.venv/bin/python -m pytest tests/test_file.py::test_function_name
 
 # Run with coverage
 pytest --cov=src
