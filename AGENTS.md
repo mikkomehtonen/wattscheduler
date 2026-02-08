@@ -3,6 +3,24 @@
 ## Project Overview
 This is a Python project for electricity price based task scheduling using FastAPI, designed for managing tasks based on electricity pricing data.
 
+## Tooling Policy (IMPORTANT)
+
+This runtime does NOT provide the `list` tool.
+
+Use these tools instead:
+- Use `glob` to list directories and find files (e.g. `*`, `src/**`, `**/*.py`).
+- Use `grep` to search within files.
+- Use `read` to open files.
+
+Do not use `bash` for `ls`, `find`, `cat`, or grep-like tasks. Use `glob` / `grep` / `read` instead.
+Use `bash` only for running the app/tests (uvicorn/pytest).
+
+Do **not** use the `bash` tool for:
+- `ls`, `find`, `cat`, `rg/grep`, `sed`, `awk`
+These must be done via `list` / `glob` / `grep` instead.
+
+The `bash` tool is only for running the project (e.g. `pytest`, `uvicorn`) or other commands that cannot be done via file tools.
+
 ## Build Commands
 
 ### Install Dependencies
