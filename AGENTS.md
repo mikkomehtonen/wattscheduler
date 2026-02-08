@@ -21,6 +21,8 @@ These must be done via `list` / `glob` / `grep` instead.
 
 The `bash` tool is only for running the project (e.g. `pytest`, `uvicorn`) or other commands that cannot be done via file tools.
 
+When working with Python code, use `lsp` for symbol resolution, type information, references, and   diagnostics. Do not infer definitions, references, or types from static reading alone when LSP data is available.
+
 ## Build Commands
 
 ### Install Dependencies

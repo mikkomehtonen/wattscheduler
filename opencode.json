@@ -13,6 +13,18 @@
         "webfetch": "ask",
         "lsp": "allow"
     },
+    "lsp": {
+        "basedpyright": {
+            "command": [
+                "./.venv/bin/basedpyright-langserver",
+                "--stdio"
+            ],
+            "extensions": [
+                ".py",
+                ".pyi"
+            ]
+        }
+    },
     "formatter": {
         "eof-and-trailing-ws": {
             "command": [
