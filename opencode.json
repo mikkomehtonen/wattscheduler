@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+    "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "question": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "bash": "ask",
+    "webfetch": "ask",
+    "lsp": "allow"
+  },
+  "formatter": {
+    "eof-and-trailing-ws": {
+      "command": [
+        "python3",
+        "-c",
+        "import sys, pathlib\np = pathlib.Path(sys.argv[1])\nb = p.read_bytes()\n# skip binary-ish files\nif b.find(b'\\x00') != -1:\n    raise SystemExit(0)\n# try decode; if not utf-8 text, skip\ntry:\n    s = b.decode('utf-8')\nexcept UnicodeDecodeError:\n    raise SystemExit(0)\nlines = s.splitlines(keepends=True)\nout = []\nfor l in lines:\n    nl = ''\n    if l.endswith('\\r\\n'):\n        nl = '\\r\\n'\n        core = l[:-2]\n    elif l.endswith('\\n'):\n        nl = '\\n'\n        core = l[:-1]\n    elif l.endswith('\\r'):\n        nl = '\\r'\n        core = l[:-1]\n    else:\n        core = l\n    core = core.rstrip(' \\t')\n    out.append(core + nl)\nresult = ''.join(out)\n# ensure final newline if file not empty\nif result and not result.endswith('\\n'):\n    result += '\\n'\nrb = result.encode('utf-8')\nif rb != b:\n    p.write_bytes(rb)\n",
+        "$FILE"
+      ],
+      "extensions": [
+        ".py",
+        ".c", ".cpp", ".h", ".hpp",
+        ".cmake", ".txt", ".md",
+        ".json", ".yml", ".yaml", ".toml",
+        ".sh", ".bash",
+        ".qml", ".js", ".ts", ".tsx",
+        ".html"
+      ]
+    }
+  }
+}
