@@ -125,8 +125,11 @@ All configurations are defined in pyproject.toml:
 
 ### Install Dependencies
 ```bash
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
+- Never use pip install --user in this project.
+- Always install into the active virtual environment.
+- Always run pip as python -m pip ...
 
 ### Run Development Server
 ```bash
