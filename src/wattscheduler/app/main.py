@@ -30,18 +30,20 @@ class ScheduleRequestDTO(BaseModel):
     earliest_start: str
     latest_end: str
     duration_minutes: int
-    num_windows: int = 1
+    top_n: int = 1
 
 
 class WindowResponseDTO(BaseModel):
-    start_time: str
-    end_time: str
-    total_price: float
+    start: str
+    end: str
     average_price: float
+    total_price: float
 
 
 class ScheduleResponseDTO(BaseModel):
-    windows: list[WindowResponseDTO]
+    results: list[WindowResponseDTO]
+    unit: str
+    interval_minutes: int
 
 
 def get_price_provider() -> PriceProvider:
@@ -59,7 +61,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
         earliest_start: ISO 8601 formatted datetime string for earliest start time
         latest_end: ISO 8601 formatted datetime string for latest end time
         duration_minutes: Duration of the task in minutes (must be divisible by 15)
-        num_windows: Number of optimal windows to return (default: 1)
+        top_n: Number of optimal windows to return (default: 1)
 
     Returns:
         List of optimal windows with start/end times and price information
@@ -71,7 +73,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     prices = price_provider.get_prices(earliest_start, latest_end)
 
     if not prices:
-        return ScheduleResponseDTO(windows=[])
+        return ScheduleResponseDTO(results=[], unit="EUR/MWh", interval_minutes=15)
 
     from wattscheduler.app.core.models import PricePoint
 
@@ -80,19 +82,21 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     windows = find_cheapest_windows(
         price_points=price_points,
         duration_minutes=request.duration_minutes,
-        top_n=request.num_windows
+        top_n=request.top_n
     )
 
     result = ScheduleResponseDTO(
-        windows=[
+        results=[
             WindowResponseDTO(
-                start_time=w.start_time.isoformat() + 'Z',
-                end_time=w.end_time.isoformat() + 'Z',
-                total_price=w.total_price,
-                average_price=w.average_price
+                start=w.start_time.isoformat() + 'Z',
+                end=w.end_time.isoformat() + 'Z',
+                average_price=w.average_price,
+                total_price=w.total_price
             )
             for w in windows
-        ]
+        ],
+        unit="EUR/MWh",
+        interval_minutes=15
     )
 
     return result
