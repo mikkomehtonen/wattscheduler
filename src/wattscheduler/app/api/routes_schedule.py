@@ -1,12 +1,15 @@
-from fastapi import APIRouter
-from datetime import datetime
-from wattscheduler.app.core.models import Window
+from fastapi import APIRouter, HTTPException
+from datetime import datetime, timezone, timedelta
+from wattscheduler.app.core.models import PricePoint, Window
 from wattscheduler.app.core.optimizer import find_cheapest_windows
-from wattscheduler.app.infra.price_providers import MockPriceProvider, PriceProvider
+from wattscheduler.app.infra.cache import CacheStore
+from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
+from wattscheduler.app.infra.price_providers import CachedPriceProvider
 from pydantic import BaseModel
 from typing import List
 
 router = APIRouter()
+
 
 class ScheduleRequestDTO(BaseModel):
     earliest_start: str
@@ -28,10 +31,12 @@ class ScheduleResponseDTO(BaseModel):
     interval_minutes: int
 
 
-def get_price_provider() -> PriceProvider:
-    """Get the price provider instance."""
-    # For now, use a mock provider. In production, this would be the real provider.
-    return MockPriceProvider()
+def get_price_provider():
+    """Get the price provider - can be either mock or real data"""
+    # Use real data provider with caching
+    cache_store = CacheStore("default_cache")
+    real_provider = SpotHintaPriceProvider()
+    return CachedPriceProvider(real_provider, cache_store, "default")
 
 
 @router.post("/v1/schedule")
@@ -56,8 +61,6 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
 
     if not prices:
         return ScheduleResponseDTO(results=[], unit="EUR/MWh", interval_minutes=15)
-
-    from wattscheduler.app.core.models import PricePoint
 
     price_points = [PricePoint(timestamp=p.timestamp, price=p.price) for p in prices]
 

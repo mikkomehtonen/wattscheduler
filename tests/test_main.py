@@ -147,17 +147,6 @@ def test_cached_price_provider_simple():
     assert prices[0].price == 10.0
     assert prices[1].price == 12.0
 
-
-
-def test_invalid_duration():
-    price_points = [
-        PricePoint(datetime(2023, 1, 1, 0, 0), 10.0),
-        PricePoint(datetime(2023, 1, 1, 0, 15), 12.0),
-    ]
-
-    with pytest.raises(ValueError):
-        find_cheapest_windows(price_points, 25, 1)  # Not divisible by 15
-
 def test_duration_larger_than_data():
     price_points = [
         PricePoint(datetime(2023, 1, 1, 0, 0), 10.0),

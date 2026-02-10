@@ -2,6 +2,7 @@ from typing import List
 from datetime import datetime, timezone, timedelta
 from wattscheduler.app.core.models import PricePoint
 from wattscheduler.app.infra.cache import CacheStore
+from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
 import os
 import json
 from pathlib import Path
