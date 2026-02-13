@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from datetime import datetime, timezone, timedelta
-from wattscheduler.app.core.models import PricePoint, Window
+from fastapi import APIRouter
+from datetime import datetime
+from wattscheduler.app.core.models import PricePoint
 from wattscheduler.app.core.optimizer import find_cheapest_windows
 from wattscheduler.app.infra.cache import CacheStore
 from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider

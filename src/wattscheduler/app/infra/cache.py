@@ -1,7 +1,6 @@
 from typing import List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from wattscheduler.app.core.models import PricePoint
-import os
 import json
 from pathlib import Path
 
