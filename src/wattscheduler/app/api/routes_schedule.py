@@ -20,8 +20,8 @@ class ScheduleRequestDTO(BaseModel):
 
 
 class WindowResponseDTO(BaseModel):
-    start: str
-    end: str
+    start: datetime
+    end: datetime
     average_price: float
     total_price: float
     estimated_cost_eur: float
@@ -108,8 +108,8 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     result = ScheduleResponseDTO(
         results=[
             WindowResponseDTO(
-                start=w.start_time.isoformat(),
-                end=(w.start_time + timedelta(minutes=request.duration_minutes)).isoformat(),
+                start=w.start_time,
+                end=w.start_time + timedelta(minutes=request.duration_minutes),
                 average_price=w.average_price,
                 total_price=w.total_price,
                 estimated_cost_eur=window_cost_eur(w.total_price, request.power_kw, 15),
