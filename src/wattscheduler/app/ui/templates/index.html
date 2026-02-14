@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Electricity Scheduler</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fi.js"></script>
+    <link rel="stylesheet" href="/static/style.css"></style>
+</head>
+<body>
+    <h1>Electricity Scheduler</h1>
+
+    <div class="container">
+        <form id="scheduleForm" class="form-grid">
+            <label>Duration (minutes):</label>
+            <input type="number" id="duration_minutes" name="duration_minutes" value="30" required>
+
+            <label>Power (kW):</label>
+            <input type="number" id="power_kw" name="power_kw" value="2.0" step="0.1" required>
+
+            <label>Earliest Start:</label>
+            <input type="text" id="earliest_start" name="earliest_start" required>
+
+            <label>Latest End:</label>
+            <input type="text" id="latest_end" name="latest_end" required>
+
+            <div></div>
+
+            <button type="submit">Find Best Schedule</button>
+        </form>
+    </div>
+
+    <div id="results">
+        <h2>Results</h2>
+        <div id="summary"></div>
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+
+</body>
+</html>

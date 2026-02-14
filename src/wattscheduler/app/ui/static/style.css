@@ -1,0 +1,59 @@
+/* Main page styling */
+.chart-container {
+    width: 100%;
+    height: 420px;        /* sopiva oletus */
+    max-height: 60vh;     /* ei koskaan yli 60% ruudun korkeudesta */
+}
+
+#priceChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 180px auto;
+    gap: 10px 16px;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-grid label {
+    text-align: right;
+    font-weight: 500;
+}
+
+.form-grid input {
+    width: 220px;
+    max-width: 100%;
+    padding: 6px;
+}
+
+.form-grid button {
+    grid-column: 2;
+    width: fit-content;
+    padding: 6px 12px;
+    margin-top: 8px;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+h1 {
+    margin-bottom: 24px;
+}
+
+input {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.container {
+    max-width: 720px;
+    margin: 24px auto;
+    padding: 20px 24px;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
