@@ -6,6 +6,12 @@ from wattscheduler.app.main import app
 client = TestClient(app)
 
 
+def parse_iso(dt_str: str) -> datetime:
+    # Accept both "...Z" and "...+00:00"
+    if dt_str.endswith("Z"):
+        dt_str = dt_str[:-1] + "+00:00"
+    return datetime.fromisoformat(dt_str)
+
 def test_schedule_30min_cost_and_window_regression(monkeypatch):
     """
     Regression test for:
@@ -45,8 +51,8 @@ def test_schedule_30min_cost_and_window_regression(monkeypatch):
     assert "results" in data and len(data["results"]) == 1
     result = data["results"][0]
 
-    assert result["start"] == "2026-02-14T20:30:00+00:00"
-    assert result["end"] == "2026-02-14T21:00:00+00:00"
+    assert parse_iso(result["start"]) == datetime(2026, 2, 14, 20, 30, tzinfo=timezone.utc)
+    assert parse_iso(result["end"]) == datetime(2026, 2, 14, 21, 0, tzinfo=timezone.utc)
 
     # From your provided data:
     # 20:30 = 0.14873, 20:45 = 0.13992
