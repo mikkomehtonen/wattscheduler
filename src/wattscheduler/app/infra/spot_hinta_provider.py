@@ -1,11 +1,12 @@
 from typing import List
 from datetime import datetime, timezone
 from wattscheduler.app.core.models import PricePoint
+from wattscheduler.app.infra.price_providers import PriceProvider
 import urllib.request
 import json
 
 
-class SpotHintaPriceProvider:
+class SpotHintaPriceProvider(PriceProvider):
     """Price provider that fetches real electricity prices from the Finnish Spot-Hinta API."""
 
     def __init__(self, api_url: str = "https://api.spot-hinta.fi/TodayAndDayForward"):
@@ -31,7 +32,7 @@ class SpotHintaPriceProvider:
         # Make request to the Finnish electricity price API using urllib
         try:
             response = urllib.request.urlopen(self.api_url)
-            data = response.read().decode('utf-8')
+            data = response.read().decode("utf-8")
             parsed_data = json.loads(data)
         except Exception as e:
             # If API is not accessible, raise the exception
@@ -43,11 +44,11 @@ class SpotHintaPriceProvider:
 
         # Process each price entry from the API
         for item in parsed_data:
-            timestamp_str = item.get('DateTime')
-            price = item.get('PriceWithTax')
+            timestamp_str = item.get("DateTime")
+            price = item.get("PriceWithTax")
 
             # Parse the timestamp string to datetime with proper timezone handling
-            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
 
             # If the timestamp is timezone-aware, convert it to UTC
             if timestamp.tzinfo is not None:
