@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from wattscheduler.app.core.models import PricePoint
 from wattscheduler.app.core.optimizer import find_cheapest_windows
 from wattscheduler.app.infra.cache import CacheStore
@@ -12,8 +12,8 @@ router = APIRouter()
 
 
 class ScheduleRequestDTO(BaseModel):
-    earliest_start: str
-    latest_end: str
+    earliest_start: datetime
+    latest_end: datetime
     duration_minutes: int
     power_kw: float = Field(gt=0)
     top_n: int = 1
@@ -50,8 +50,8 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     Schedule a task based on electricity prices.
 
     Args:
-        earliest_start: ISO 8601 formatted datetime string for earliest start time
-        latest_end: ISO 8601 formatted datetime string for latest end time
+        earliest_start: Datetime for earliest start time
+        latest_end: Datetime for latest end time
         duration_minutes: Duration of the task in minutes (must be divisible by 15)
         power_kw: Power consumption of the appliance in kilowatts
         top_n: Number of optimal windows to return (default: 1)
@@ -59,8 +59,9 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     Returns:
         List of optimal windows with start/end times and price information
     """
-    earliest_start = datetime.fromisoformat(request.earliest_start.replace("Z", "+00:00"))
-    latest_end = datetime.fromisoformat(request.latest_end.replace("Z", "+00:00"))
+    # Use request datetime objects directly
+    earliest_start = request.earliest_start
+    latest_end = request.latest_end
 
     price_provider = get_price_provider()
     prices = price_provider.get_prices(earliest_start, latest_end)
@@ -84,7 +85,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
         return price_per_kwh * request.power_kw * duration_hours
 
     # Calculate cost if started now (rounded to next 15-minute slot)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(earliest_start.tzinfo)
     # Round up to next 15-minute interval
     minutes_to_add = (15 - (now.minute % 15)) % 15
     if minutes_to_add == 0:
@@ -103,8 +104,8 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     result = ScheduleResponseDTO(
         results=[
             WindowResponseDTO(
-                start=w.start_time.isoformat() + "Z",
-                end=(w.start_time + timedelta(minutes=request.duration_minutes)).isoformat() + "Z",
+                start=w.start_time.isoformat(),
+                end=(w.start_time + timedelta(minutes=request.duration_minutes)).isoformat(),
                 average_price=w.average_price,
                 total_price=w.total_price,
                 estimated_cost_eur=calculate_cost(w.total_price),
