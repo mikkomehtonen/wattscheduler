@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from wattscheduler.app.core.models import PricePoint
 from wattscheduler.app.core.optimizer import find_cheapest_windows
 from wattscheduler.app.infra.cache import CacheStore
@@ -44,6 +44,35 @@ def get_price_provider():
     return CachedPriceProvider(real_provider, cache_store, "default")
 
 
+def ceil_to_interval(dt, minutes):
+    """Round datetime up to the next interval boundary."""
+    # Convert to UTC for consistent calculations
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    # Get seconds since epoch
+    seconds_since_epoch = int(dt.timestamp())
+    # Round up to the next interval
+    interval_seconds = minutes * 60
+    rounded_up_seconds = (
+        (seconds_since_epoch + interval_seconds - 1) // interval_seconds
+    ) * interval_seconds
+    return datetime.fromtimestamp(rounded_up_seconds, tz=timezone.utc)
+
+
+def window_cost_eur(total_price, power_kw, interval_minutes):
+    """Calculate cost in EUR for a window.
+
+    Args:
+        total_price: Sum of prices over the window (EUR/kWh)
+        power_kw: Power consumption in kW
+        interval_minutes: Duration of each slot in minutes (15)
+
+    Returns:
+        Cost in EUR
+    """
+    return total_price * power_kw * (interval_minutes / 60.0)
+
+
 @router.post("/v1/schedule")
 async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     """
@@ -75,32 +104,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
         price_points=price_points, duration_minutes=request.duration_minutes, top_n=request.top_n
     )
 
-    # Compute cost based on power consumption (kW * hours * price)
-    # Duration in minutes, convert to hours (0.25 = 15 minutes in hours)
-    duration_hours = request.duration_minutes / 60.0
-
-    def calculate_cost(price_per_kwh: float) -> float:
-        # Cost = price_per_kwh * power_kw * duration_hours
-        # Spot-Hinta PriceWithTax is already EUR/kWh, no /1000 conversion needed
-        return price_per_kwh * request.power_kw * duration_hours
-
-    # Calculate cost if started now (rounded to next 15-minute slot)
-    now = datetime.now(earliest_start.tzinfo)
-    # Round up to next 15-minute interval
-    minutes_to_add = (15 - (now.minute % 15)) % 15
-    if minutes_to_add == 0:
-        minutes_to_add = 15
-    start_now = now.replace(second=0, microsecond=0) + timedelta(minutes=minutes_to_add)
-
-    # Find the current price at this time
-    current_price = 0
-    for p in prices:
-        if start_now <= p.timestamp:
-            current_price = p.price
-            break
-    start_now_cost = calculate_cost(current_price)
-
-    # Create response with all required fields
+    # Calculate cost for each window
     result = ScheduleResponseDTO(
         results=[
             WindowResponseDTO(
@@ -108,14 +112,43 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
                 end=(w.start_time + timedelta(minutes=request.duration_minutes)).isoformat(),
                 average_price=w.average_price,
                 total_price=w.total_price,
-                estimated_cost_eur=calculate_cost(w.total_price),
-                start_now_cost_eur=start_now_cost,
-                savings_vs_now_eur=start_now_cost - calculate_cost(w.total_price),
+                estimated_cost_eur=window_cost_eur(w.total_price, request.power_kw, 15),
+                start_now_cost_eur=0.0,
+                savings_vs_now_eur=0.0,
             )
             for w in windows
         ],
         interval_minutes=15,
         currency="EUR",
     )
+
+    # Calculate start_now_cost_eur and savings_vs_now_eur for each result
+    for i, window in enumerate(result.results):
+        # 1) Get current time in UTC
+        now = datetime.now(timezone.utc)
+
+        # 2) Round up to next 15-minute slot
+        now_rounded = ceil_to_interval(now, 15)
+
+        # 3) Start now is max of rounded time and earliest start
+        start_now = max(now_rounded, earliest_start)
+
+        # 4) End now is start now plus duration
+        end_now = start_now + timedelta(minutes=request.duration_minutes)
+
+        # 5) Build list of price points in [start_now, end_now)
+        start_now_total_price = 0.0
+        for price_point in price_points:
+            if start_now <= price_point.timestamp < end_now:
+                start_now_total_price += price_point.price
+
+        # 6) Calculate start now cost using our helper
+        start_now_cost_eur = window_cost_eur(start_now_total_price, request.power_kw, 15)
+
+        # 7) Calculate savings
+        result.results[i].start_now_cost_eur = start_now_cost_eur
+        result.results[i].savings_vs_now_eur = (
+            start_now_cost_eur - result.results[i].estimated_cost_eur
+        )
 
     return result
