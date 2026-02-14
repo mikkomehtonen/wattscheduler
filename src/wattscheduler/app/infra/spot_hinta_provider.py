@@ -42,6 +42,17 @@ class SpotHintaPriceProvider(PriceProvider):
         # Format: [{"timestamp": "2024-01-01T00:00:00+02:00", "price": 15.2}, ...]
         prices = []
 
+        # Normalize query range to UTC
+        if earliest_start.tzinfo is None:
+            earliest_start = earliest_start.replace(tzinfo=timezone.utc)
+        else:
+            earliest_start = earliest_start.astimezone(timezone.utc)
+
+        if latest_end.tzinfo is None:
+            latest_end = latest_end.replace(tzinfo=timezone.utc)
+        else:
+            latest_end = latest_end.astimezone(timezone.utc)
+
         # Process each price entry from the API
         for item in parsed_data:
             timestamp_str = item.get("DateTime")
@@ -55,7 +66,7 @@ class SpotHintaPriceProvider(PriceProvider):
                 timestamp = timestamp.astimezone(timezone.utc)
 
             # Only include prices within our requested time range
-            if earliest_start <= timestamp <= latest_end:
+            if earliest_start <= timestamp < latest_end:
                 prices.append(PricePoint(timestamp, price))
 
         # Sort prices by timestamp
