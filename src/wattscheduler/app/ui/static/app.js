@@ -33,8 +33,6 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
     const formData = new FormData(this);
     const duration_minutes = parseInt(formData.get('duration_minutes'));
     const power_kw = parseFloat(formData.get('power_kw'));
-    // const earliest_start = new Date(formData.get('earliest_start'));
-    // const latest_end = new Date(formData.get('latest_end'));
     const earliest_start = document.getElementById("earliest_start")._flatpickr.selectedDates[0];
     const latest_end = document.getElementById("latest_end")._flatpickr.selectedDates[0];
 
@@ -76,31 +74,34 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
 });
 
 function displayResults(prices, scheduleData) {
-    if (!scheduleData.results || scheduleData.results.length === 0) {
+    if (!scheduleData.best_window) {
         document.getElementById('summary').innerHTML = '<p>No schedule found</p>';
         return;
     }
 
-    const result = scheduleData.results[0];
+    const bestWindow = scheduleData.best_window;
+    const worstWindow = scheduleData.worst_window;
 
     // Display summary
     const summaryDiv = document.getElementById('summary');
     summaryDiv.innerHTML = `
         <h3>Best Schedule:</h3>
-        <p><strong>Start:</strong> ${formatDisplayTime(new Date(result.start))}</p>
-        <p><strong>End:</strong> ${formatDisplayTime(new Date(result.end))}</p>
-        <p><strong>Estimated Cost:</strong> ${result.estimated_cost_eur.toFixed(4)} €</p>
-        <p><strong>Savings vs Now:</strong> ${result.savings_vs_now_eur.toFixed(4)} €</p>
-        <p><strong>Average Price:</strong> ${result.avg_price_eur_per_kwh.toFixed(4)} €/kWh</p>
+        <p><strong>Start:</strong> ${formatDisplayTime(new Date(bestWindow.start))}</p>
+        <p><strong>End:</strong> ${formatDisplayTime(new Date(bestWindow.end))}</p>
+        <p><strong>Estimated Cost:</strong> ${bestWindow.estimated_cost_eur.toFixed(4)} €</p>
+        <p><strong>Savings vs Now:</strong> ${bestWindow.savings_vs_now_eur.toFixed(4)} €</p>
+        <p><strong>Average Price:</strong> ${bestWindow.avg_price_eur_per_kwh.toFixed(4)} €/kWh</p>
     `;
 
     // Create chart
-    createChart(prices, result);
+    createChart(prices, bestWindow, worstWindow);
 }
 
 let priceChart = null;
 
-function createChart(prices, bestWindow) {
+function createChart(prices, bestWindow, worstWindow) {
+    console.log(bestWindow, worstWindow)
+
     const ctx = document.getElementById('priceChart').getContext('2d');
 
     // Destroy previous chart if it exists
@@ -130,9 +131,11 @@ function createChart(prices, bestWindow) {
     const datasets = [{
         label: 'Electricity Price (€/kWh)',
         data: pricesValues,
-        borderWidth: 1,
-        pointRadius: 2,
-        fill: false
+        borderColor: '#1f77b4',
+        backgroundColor: 'transparent',
+        borderWidth: 3,
+        pointRadius: 0,
+        tension: 0.25
     }];
 
     // Highlight best window as a second dataset
@@ -145,8 +148,27 @@ function createChart(prices, bestWindow) {
         datasets.push({
             label: 'Best Window',
             data: windowData,
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.4)',
+            borderColor: '#2a9d8f',
+            backgroundColor: '#2a9d8f',
+            borderWidth: 3,
+            pointRadius: 0,
+            fill: true,
+            spanGaps: true
+        });
+
+        const worstWindowStart = new Date(worstWindow.start);
+        const worstWindowEnd = new Date(worstWindow.end);
+        const worstStartIndex = prices.findIndex(p => new Date(p.timestamp) >= worstWindowStart);
+        const worstEndIndex = prices.findIndex(p => new Date(p.timestamp) >= worstWindowEnd);
+        const worstWindowData = Array(prices.length).fill(null);
+        for (let i = worstStartIndex; i < worstEndIndex; i++) {
+            worstWindowData[i] = pricesValues[i];
+        }
+        datasets.push({
+            label: 'Most Expensive Window',
+            data: worstWindowData,
+            borderColor: '#e63946',
+            backgroundColor: '#e63946',
             borderWidth: 3,
             pointRadius: 0,
             fill: true,
