@@ -22,7 +22,7 @@ class ScheduleRequestDTO(BaseModel):
 class WindowResponseDTO(BaseModel):
     start: datetime
     end: datetime
-    average_price: float
+    avg_price_eur_per_kwh: float
     total_price: float
     estimated_cost_eur: float
     start_now_cost_eur: float
@@ -48,7 +48,7 @@ def ceil_to_interval(dt, minutes):
     """Round datetime up to the next interval boundary."""
     # Convert to UTC for consistent calculations
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        raise ValueError("dt must be timezone-aware")
     # Get seconds since epoch
     seconds_since_epoch = int(dt.timestamp())
     # Round up to the next interval
@@ -110,7 +110,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
             WindowResponseDTO(
                 start=w.start_time,
                 end=w.start_time + timedelta(minutes=request.duration_minutes),
-                average_price=w.average_price,
+                avg_price_eur_per_kwh=w.average_price,
                 total_price=w.total_price,
                 estimated_cost_eur=window_cost_eur(w.total_price, request.power_kw, 15),
                 start_now_cost_eur=0.0,
