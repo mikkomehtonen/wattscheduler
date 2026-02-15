@@ -95,12 +95,25 @@ function displayResults(prices, scheduleData) {
     // Display summary
     const summaryDiv = document.getElementById('summary');
     summaryDiv.innerHTML = `
-        <h3>Best Schedule:</h3>
-        <p><strong>Start:</strong> ${formatDisplayTime(new Date(bestWindow.start))}</p>
-        <p><strong>End:</strong> ${formatDisplayTime(new Date(bestWindow.end))}</p>
-        <p><strong>Estimated Cost:</strong> ${bestWindow.estimated_cost_eur.toFixed(4)} €</p>
-        <p><strong>Savings vs Now:</strong> ${bestWindow.savings_vs_now_eur.toFixed(4)} €</p>
-        <p><strong>Average Price:</strong> ${(bestWindow.avg_price_eur_per_kwh * 100).toFixed(2)} snt/kWh</p>
+        <div class="best-schedule">
+            <h3>Best Schedule</h3>
+            <div class="best-grid">
+                <label>Start:</label>
+                <div>${formatDisplayTime(new Date(bestWindow.start))}</div>
+
+                <label>End:</label>
+                <div>${formatDisplayTime(new Date(bestWindow.end))}</div>
+
+                <label>Estimated Cost:</label>
+                <div>${bestWindow.estimated_cost_eur.toFixed(4)} €</div>
+
+                <label>Savings vs Now:</label>
+                <div>${bestWindow.savings_vs_now_eur.toFixed(4)} €</div>
+
+                <label>Average Price:</label>
+                <div>${(bestWindow.avg_price_eur_per_kwh * 100).toFixed(2)} snt/kWh</div>
+            </div>
+        </div>
     `;
 
     // Create chart
@@ -141,19 +154,21 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
     const worstStartIndex = worstStart ? indexByMs.get(worstStart.getTime()) : undefined;
 
     // Per-bar colors
-    const bestColor = 'rgba(0, 150, 0, 0.8)';
-    const worstColor = 'rgba(230, 57, 70, 1)';
-    const backgroundColor = '#3A7CA5';
-    const borderColor = '#1F4E70';
+    const rootStyles = getComputedStyle(document.documentElement);
+    const bestColor = rootStyles.getPropertyValue('--color-best').trim();
+    const worstColor = rootStyles.getPropertyValue('--color-worst').trim();
+    const priceColor = rootStyles.getPropertyValue('--color-price').trim();
+    const borderColor = rootStyles.getPropertyValue('--color-border').trim();
+    const gridColor = rootStyles.getPropertyValue('--color-grid').trim();
 
-    const bgColors = Array(values.length).fill(backgroundColor);
+    const bgColors = Array(values.length).fill(priceColor);
     const borderColors = Array(values.length).fill(borderColor);
 
     // Paint best window
     if (bestStartIndex !== undefined) {
         for (let i = bestStartIndex; i < Math.min(values.length, bestStartIndex + slots); i++) {
             bgColors[i] = bestColor;
-            borderColors[i] = 'rgba(42, 157, 143, 1)';
+            borderColors[i] = borderColor;
         }
     }
 
@@ -161,7 +176,7 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
     if (worstStartIndex !== undefined) {
         for (let i = worstStartIndex; i < Math.min(values.length, worstStartIndex + slots); i++) {
             bgColors[i] = worstColor;
-            borderColors[i] = 'rgba(230, 57, 70, 1)';
+            borderColors[i] = borderColor;
         }
     }
 
@@ -176,7 +191,7 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
                 data: values,
                 backgroundColor: bgColors,
                 borderColor: borderColors,
-                borderWidth: 1,
+                borderWidth: 0,
                 categoryPercentage: 0.95,
                 barPercentage: 0.95
             }]
@@ -188,15 +203,15 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
                 x: {
                     type: 'category',
                     title: { display: true, text: 'Time' },
-                    grid: { color: 'rgba(0,0,0,0.1)' },
+                    grid: { color: gridColor },
                     layer: -1
                 },
                 y: {
-                    grid: { color: 'rgba(0,0,0,0.1)' },
                     title: { display: true, text: 'Price (snt/kWh)' },
+                    grid: { color: gridColor },
                     layer: -1,
                     ticks: {
-                        callback: function(value, index, ticks) {
+                        callback: function (value, index, ticks) {
                             return (value * 100).toFixed(0);
                         }
                     }
@@ -204,12 +219,13 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
             },
             plugins: {
                 legend: {
+                    position: 'bottom',
                     labels: {
                         generateLabels: function (chart) {
                             return [
                                 {
                                     text: 'Electricity Price',
-                                    fillStyle: backgroundColor
+                                    fillStyle: priceColor
                                 },
                                 {
                                     text: 'Best Window',

@@ -1,8 +1,23 @@
 /* Main page styling */
+:root {
+  --color-best: rgba(16, 185, 86, 0.9);
+  --color-worst: rgba(239, 68, 68, 0.9);
+  --color-price: rgba(37, 99, 235, 0.75);
+  --color-border: rgba(0, 0, 0, 0.15);
+  --color-grid: rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  margin: 1.5rem 0;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
 .chart-container {
     width: 100%;
-    height: 420px;        /* sopiva oletus */
-    max-height: 60vh;     /* ei koskaan yli 60% ruudun korkeudesta */
+    height: 420px;
+    max-height: 60vh;
 }
 
 #priceChart {
@@ -20,17 +35,45 @@
 
 .form-grid label {
     text-align: right;
-    font-weight: 500;
+    font-weight: 600;
+}
+
+.best-schedule {
+  grid-column: 1 / -1;
+}
+.best-schedule h3 {
+  text-align: center;
+  margin-top: 0;
+}
+
+.best-grid{
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px 24px;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.best-grid label{
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.best-grid .value{
+  text-align: left;
+  white-space: nowrap;
 }
 
 .form-grid input {
-    width: 220px;
+    width: 180px;
     max-width: 100%;
     padding: 6px;
 }
 
 .form-grid button {
-    grid-column: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
     width: fit-content;
     padding: 6px 12px;
     margin-top: 8px;
