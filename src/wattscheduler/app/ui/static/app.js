@@ -1,5 +1,5 @@
 // Set default dates
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const now = new Date();
 
     const earliest = new Date(now);
@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
         time_24hr: true,
         dateFormat: "d.m.Y H:i",
         locale: "fi",
-         defaultDate: latest
+        defaultDate: latest
     });
 });
 
-document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
+document.getElementById('scheduleForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const formData = new FormData(this);
@@ -94,128 +94,129 @@ function displayResults(prices, scheduleData) {
     `;
 
     // Create chart
-    createChart(prices, bestWindow, worstWindow);
+    console.log(scheduleData)
+    createChart(prices, bestWindow, worstWindow, scheduleData.duration_minutes);
 }
 
-let priceChart = null;
+let priceChart;
 
-function createChart(prices, bestWindow, worstWindow) {
-    console.log(bestWindow, worstWindow)
-
+function createChart(prices, bestWindow, worstWindow, duration_minutes) {
     const ctx = document.getElementById('priceChart').getContext('2d');
 
-    // Destroy previous chart if it exists
-    if (priceChart) {
-        priceChart.destroy();
-    }
+    // Destroy previous chart (Canvas is already in use -bugi)
+    if (priceChart) priceChart.destroy();
 
-    // Prepare labels and data (no time scale, no adapter needed)
-    const labels = prices.map(p => {
-        // show HH:MM in local time
-        const d = new Date(p.timestamp);
-        return d.toLocaleTimeString('fi-FI', {
+    prices.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    const timestamps = prices.map(p => new Date(p.timestamp));
+    const labels = prices.map(p =>
+        new Date(p.timestamp).toLocaleTimeString('fi-FI', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
-        });
-    });
-    const pricesValues = prices.map(p => p.price);
+        })
+    );
+    const values = prices.map(p => p.price);
 
-    // Best window indices (compare using ISO timestamps)
-    const windowStart = new Date(bestWindow.start);
-    const windowEnd = new Date(bestWindow.end);
+    const slotMinutes = 15;
+    const slots = Math.max(1, Math.round(duration_minutes / slotMinutes));
 
-    const startIndex = prices.findIndex(p => new Date(p.timestamp) >= windowStart);
-    const endIndex = prices.findIndex(p => new Date(p.timestamp) >= windowEnd);
+    // Map timestamps -> index
+    const indexByMs = new Map(timestamps.map((d, i) => [d.getTime(), i]));
 
-    const datasets = [{
-        label: 'Electricity Price (€/kWh)',
-        data: pricesValues,
-        borderColor: '#1f77b4',
-        backgroundColor: 'transparent',
-        borderWidth: 3,
-        pointRadius: 0,
-        tension: 0.25
-    }];
+    const bestStart = new Date(bestWindow.start);
+    const worstStart = worstWindow ? new Date(worstWindow.start) : null;
 
-    // Highlight best window as a second dataset
-    if (startIndex >= 0 && endIndex >= 0) {
-        const windowData = Array(prices.length).fill(null);
-        for (let i = startIndex; i < endIndex; i++) {
-            windowData[i] = pricesValues[i];
+    const bestStartIndex = indexByMs.get(bestStart.getTime());
+    const worstStartIndex = worstStart ? indexByMs.get(worstStart.getTime()) : undefined;
+
+    // Per-bar colors
+    const bestColor = 'rgba(0, 150, 0, 0.8)';
+    const worstColor = 'rgba(230, 57, 70, 1)';
+    const backgroundColor = '#3A7CA5';
+    const borderColor = '#1F4E70';
+
+    const bgColors = Array(values.length).fill(backgroundColor);
+    const borderColors = Array(values.length).fill(borderColor);
+
+    // Paint best window
+    if (bestStartIndex !== undefined) {
+        for (let i = bestStartIndex; i < Math.min(values.length, bestStartIndex + slots); i++) {
+            bgColors[i] = bestColor;
+            borderColors[i] = 'rgba(42, 157, 143, 1)';
         }
-
-        datasets.push({
-            label: 'Best Window',
-            data: windowData,
-            borderColor: '#2a9d8f',
-            backgroundColor: '#2a9d8f',
-            borderWidth: 3,
-            pointRadius: 0,
-            fill: true,
-            spanGaps: true
-        });
-
-        const worstWindowStart = new Date(worstWindow.start);
-        const worstWindowEnd = new Date(worstWindow.end);
-        const worstStartIndex = prices.findIndex(p => new Date(p.timestamp) >= worstWindowStart);
-        const worstEndIndex = prices.findIndex(p => new Date(p.timestamp) >= worstWindowEnd);
-        const worstWindowData = Array(prices.length).fill(null);
-        for (let i = worstStartIndex; i < worstEndIndex; i++) {
-            worstWindowData[i] = pricesValues[i];
-        }
-        datasets.push({
-            label: 'Most Expensive Window',
-            data: worstWindowData,
-            borderColor: '#e63946',
-            backgroundColor: '#e63946',
-            borderWidth: 3,
-            pointRadius: 0,
-            fill: true,
-            spanGaps: true
-        });
     }
 
+    // Paint worst window
+    if (worstStartIndex !== undefined) {
+        for (let i = worstStartIndex; i < Math.min(values.length, worstStartIndex + slots); i++) {
+            bgColors[i] = worstColor;
+            borderColors[i] = 'rgba(230, 57, 70, 1)';
+        }
+    }
+
+    console.log(bestStartIndex, worstStartIndex, slots, bgColors)
+
     priceChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: labels,
-            datasets: datasets
+            datasets: [{
+                label: 'Electricity Price (€/kWh)',
+                data: values,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                categoryPercentage: 0.95,
+                barPercentage: 0.95
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: 'Time'
-                    },
-                    ticks: {
-                        maxTicksLimit: 12
-                    }
+                    type: 'category',
+                    title: { display: true, text: 'Aika' },
+                    grid: { color: 'rgba(0,0,0,0.1)' },
+                    layer: -1
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: 'Price (€/kWh)'
-                    }
+                    grid: { color: 'rgba(0,0,0,0.1)' },
+                    title: { display: true, text: 'Price (€/kWh)' },
+                    layer: -1
                 }
             },
             plugins: {
-                legend: { display: true },
+                legend: {
+                    labels: {
+                        generateLabels: function (chart) {
+                            return [
+                                {
+                                    text: 'Electricity Price',
+                                    fillStyle: backgroundColor
+                                },
+                                {
+                                    text: 'Best Window',
+                                    fillStyle: bestColor
+                                },
+                                {
+                                    text: 'Most Expensive Window',
+                                    fillStyle: worstColor
+                                }
+                            ];
+                        }
+                    }
+                },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            return `Price: €${context.parsed.y.toFixed(4)}/kWh`;
-                        }
+                        label: (ctx) => `Price: €${ctx.parsed.y.toFixed(4)}/kWh`
                     }
                 }
             }
         }
     });
 }
-
 
 function formatDateTime(date) {
     // Format date for datetime-local input

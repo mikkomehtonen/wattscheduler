@@ -32,6 +32,7 @@ class WindowResponseDTO(BaseModel):
 class ScheduleResponseDTO(BaseModel):
     best_window: WindowResponseDTO
     worst_window: WindowResponseDTO
+    duration_minutes: int
     interval_minutes: int
     currency: str
 
@@ -204,6 +205,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
                 start_now_cost_eur=0.0,
                 savings_vs_now_eur=0.0,
             ),
+            duration_minutes=15,
             interval_minutes=15,
             currency="EUR",
         )
@@ -282,6 +284,7 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     result = ScheduleResponseDTO(
         best_window=best_window_dto,
         worst_window=worst_window_dto,
+        duration_minutes=request.duration_minutes,
         interval_minutes=15,
         currency="EUR",
     )
