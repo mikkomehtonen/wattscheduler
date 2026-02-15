@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
         time_24hr: true,
         dateFormat: "d.m.Y H:i",
         locale: "fi",
-        defaultDate: earliest
+        defaultDate: earliest,
+        minuteIncrement: 15
     });
 
     flatpickr("#latest_end", {
@@ -23,7 +24,8 @@ document.addEventListener('DOMContentLoaded', function () {
         time_24hr: true,
         dateFormat: "d.m.Y H:i",
         locale: "fi",
-        defaultDate: latest
+        defaultDate: latest,
+        minuteIncrement: 15
     });
 });
 
