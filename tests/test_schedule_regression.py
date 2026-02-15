@@ -12,6 +12,7 @@ def parse_iso(dt_str: str) -> datetime:
         dt_str = dt_str[:-1] + "+00:00"
     return datetime.fromisoformat(dt_str)
 
+
 def test_schedule_30min_cost_and_window_regression(monkeypatch):
     """
     Regression test for:
@@ -46,10 +47,9 @@ def test_schedule_30min_cost_and_window_regression(monkeypatch):
     assert resp.status_code == 200, resp.text
     data = resp.json()
 
-    # Depending on your API shape, it might return "results" (list) or direct fields.
-    # Your latest response shows "results".
-    assert "results" in data and len(data["results"]) == 1
-    result = data["results"][0]
+    # API response changed - now returns best_window and worst_window directly
+    assert "best_window" in data
+    result = data["best_window"]
 
     assert parse_iso(result["start"]) == datetime(2026, 2, 14, 20, 30, tzinfo=timezone.utc)
     assert parse_iso(result["end"]) == datetime(2026, 2, 14, 21, 0, tzinfo=timezone.utc)
