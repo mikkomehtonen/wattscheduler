@@ -42,6 +42,9 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
     const startStr = earliest_start.toISOString();
     const endStr = latest_end.toISOString();
 
+    // Hide results initially
+    document.getElementById('results').style.display = 'none';
+
     try {
         // Get price data
         const pricesResponse = await fetch(`/v1/prices?start=${startStr}&end=${endStr}`);
@@ -69,9 +72,14 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
 
         // Display results
         displayResults(prices, scheduleData);
+
+        // Show results card
+        document.getElementById('results').style.display = 'block';
     } catch (error) {
         console.error('Error:', error);
         document.getElementById('summary').innerHTML = '<p>Error processing request</p>';
+        // Show results card even on error
+        document.getElementById('results').style.display = 'block';
     }
 });
 
