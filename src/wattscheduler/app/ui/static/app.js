@@ -92,7 +92,7 @@ function displayResults(prices, scheduleData) {
         <p><strong>End:</strong> ${formatDisplayTime(new Date(bestWindow.end))}</p>
         <p><strong>Estimated Cost:</strong> ${bestWindow.estimated_cost_eur.toFixed(4)} €</p>
         <p><strong>Savings vs Now:</strong> ${bestWindow.savings_vs_now_eur.toFixed(4)} €</p>
-        <p><strong>Average Price:</strong> ${bestWindow.avg_price_eur_per_kwh.toFixed(4)} €/kWh</p>
+        <p><strong>Average Price:</strong> ${(bestWindow.avg_price_eur_per_kwh * 100).toFixed(2)} snt/kWh</p>
     `;
 
     // Create chart
@@ -164,7 +164,7 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Electricity Price (€/kWh)',
+                label: 'Electricity Price (snt/kWh)',
                 data: values,
                 backgroundColor: bgColors,
                 borderColor: borderColors,
@@ -179,14 +179,19 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
             scales: {
                 x: {
                     type: 'category',
-                    title: { display: true, text: 'Aika' },
+                    title: { display: true, text: 'Time' },
                     grid: { color: 'rgba(0,0,0,0.1)' },
                     layer: -1
                 },
                 y: {
                     grid: { color: 'rgba(0,0,0,0.1)' },
-                    title: { display: true, text: 'Price (€/kWh)' },
-                    layer: -1
+                    title: { display: true, text: 'Price (snt/kWh)' },
+                    layer: -1,
+                    ticks: {
+                        callback: function(value, index, ticks) {
+                            return (value * 100).toFixed(0);
+                        }
+                    }
                 }
             },
             plugins: {
@@ -212,7 +217,7 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => `Price: €${ctx.parsed.y.toFixed(4)}/kWh`
+                        label: (ctx) => `Price: ${(ctx.parsed.y * 100).toFixed(2)} snt/kWh`
                     }
                 }
             }
