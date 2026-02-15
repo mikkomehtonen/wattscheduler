@@ -10,22 +10,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const latest = new Date(earliest);
     latest.setHours(latest.getHours() + 24);
 
-    flatpickr("#earliest_start", {
+    const earliestPicker = flatpickr("#earliest_start", {
         enableTime: true,
         time_24hr: true,
         dateFormat: "d.m.Y H:i",
         locale: "fi",
         defaultDate: earliest,
-        minuteIncrement: 15
+        minuteIncrement: 15,
+        minDate: now
     });
 
-    flatpickr("#latest_end", {
+    const latestPicker = flatpickr("#latest_end", {
         enableTime: true,
         time_24hr: true,
         dateFormat: "d.m.Y H:i",
         locale: "fi",
         defaultDate: latest,
-        minuteIncrement: 15
+        minuteIncrement: 15,
+        minDate: now
+    });
+
+    earliestPicker.config.onChange.push(function (selectedDates) {
+        if (selectedDates.length > 0) {
+            const newStart = selectedDates[0];
+
+            latestPicker.set("minDate", newStart);
+
+            if (latestPicker.selectedDates.length > 0 &&
+                latestPicker.selectedDates[0] < newStart) {
+                latestPicker.setDate(newStart);
+            }
+        }
     });
 });
 
