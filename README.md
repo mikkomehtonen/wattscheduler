@@ -117,6 +117,55 @@ layer and can be tested in isolation.
 
 ------------------------------------------------------------------------
 
+------------------------------------------------------------------------
+
+# 🐳 Run with Docker
+
+Wattscheduler can be built and run as a Docker container.
+
+## Build the image
+
+    docker build -t wattscheduler .
+
+If you are using BuildKit (recommended):
+
+    DOCKER_BUILDKIT=1 docker build -t wattscheduler .
+
+------------------------------------------------------------------------
+
+## Run the container
+
+    docker run -p 8080:8080 wattscheduler
+
+The application will be available at:
+
+-   Web UI: http://localhost:8080/
+-   API docs: http://localhost:8080/docs
+-   Health check: http://localhost:8080/health
+
+------------------------------------------------------------------------
+
+## Notes
+
+-   The container includes all dependencies.
+-   The service runs with Uvicorn inside the container.
+-   No local Python installation is required when using Docker.
+
+------------------------------------------------------------------------
+
+## Optional: Stop the container
+
+If running in foreground, press:
+
+    CTRL+C
+
+If running detached:
+
+    docker ps
+    docker stop <container_id>
+
+------------------------------------------------------------------------
+
 ## License
 
 MIT License
