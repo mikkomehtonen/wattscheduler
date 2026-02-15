@@ -132,7 +132,6 @@ function displayResults(prices, scheduleData) {
     `;
 
     // Create chart
-    console.log(scheduleData)
     createChart(prices, bestWindow, worstWindow, scheduleData.duration_minutes);
 }
 
@@ -179,14 +178,6 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
     const bgColors = Array(values.length).fill(priceColor);
     const borderColors = Array(values.length).fill(borderColor);
 
-    // Paint best window
-    if (bestStartIndex !== undefined) {
-        for (let i = bestStartIndex; i < Math.min(values.length, bestStartIndex + slots); i++) {
-            bgColors[i] = bestColor;
-            borderColors[i] = borderColor;
-        }
-    }
-
     // Paint worst window
     if (worstStartIndex !== undefined) {
         for (let i = worstStartIndex; i < Math.min(values.length, worstStartIndex + slots); i++) {
@@ -195,7 +186,13 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
         }
     }
 
-    console.log(bestStartIndex, worstStartIndex, slots, bgColors)
+        // Paint best window
+    if (bestStartIndex !== undefined) {
+        for (let i = bestStartIndex; i < Math.min(values.length, bestStartIndex + slots); i++) {
+            bgColors[i] = bestColor;
+            borderColors[i] = borderColor;
+        }
+    }
 
     priceChart = new Chart(ctx, {
         type: 'bar',
