@@ -1,4 +1,12 @@
-# Python
+.git/
+.gitignore
+.dockerignore
+
+.devcontainer/
+.vscode/
+.idea/
+*.code-workspace
+
 __pycache__/
 *.pyc
 *.pyo
@@ -6,26 +14,27 @@ __pycache__/
 .venv/
 venv/
 
-# Tooling caches
 .ruff_cache/
 .pytest_cache/
 .mypy_cache/
 .coverage
 htmlcov/
 
-# Build artifacts
+tests/
+test_cache/
+
 dist/
 build/
 *.egg-info/
 
-# OS/editor
-.DS_Store
-.vscode/
-.idea/
+scripts/
 
-# Local data
 *.db
 *.sqlite
 default_cache
-test_cache
-scripts
+
+.DS_Store
+AGENTS.md
+opencode.json
+README.md
+run.sh

@@ -135,7 +135,7 @@ If you are using BuildKit (recommended):
 
 ## Run the container
 
-    docker run -p 8080:8080 wattscheduler
+    docker run -p 8080:8080 -name wattscheduler wattscheduler
 
 The application will be available at:
 
