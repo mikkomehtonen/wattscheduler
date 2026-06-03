@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -11,7 +12,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 config = context.config
 
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", "sqlite:///./wattscheduler.db"))
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+DEFAULT_DB_PATH = DATA_DIR / "wattscheduler.db"
+DATA_DIR.mkdir(exist_ok=True)
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", f"sqlite:////{DEFAULT_DB_PATH}"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

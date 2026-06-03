@@ -50,8 +50,22 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
     const formData = new FormData(this);
     const duration_minutes = parseInt(formData.get('duration_minutes'));
     const power_kw = parseFloat(formData.get('power_kw'));
-    const earliest_start = document.getElementById("earliest_start")._flatpickr.selectedDates[0];
-    const latest_end = document.getElementById("latest_end")._flatpickr.selectedDates[0];
+
+    // Get Flatpickr instances and their selected dates or fallback to default dates
+    const earliestPicker = document.getElementById("earliest_start")._flatpickr;
+    const latestPicker = document.getElementById("latest_end")._flatpickr;
+
+    const earliest_start = earliestPicker.selectedDates.length > 0
+        ? earliestPicker.selectedDates[0]
+        : new Date(document.getElementById("earliest_start").value);
+    const latest_end = latestPicker.selectedDates.length > 0
+        ? latestPicker.selectedDates[0]
+        : new Date(document.getElementById("latest_end").value);
+
+    if (!earliest_start || !latest_end) {
+        alert("Please select valid start and end times");
+        return;
+    }
 
     // Convert dates to ISO format for API calls
     const startStr = earliest_start.toISOString();
