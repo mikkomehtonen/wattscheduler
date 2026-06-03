@@ -60,7 +60,7 @@ Apply database migrations:
 
 ## Run the Application
 
-    uvicorn wattscheduler.main:app --reload --port 8080
+    python -m uvicorn wattscheduler.app.main:app --reload --port 8080
 
 ------------------------------------------------------------------------
 

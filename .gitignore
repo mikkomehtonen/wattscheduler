@@ -64,3 +64,4 @@ ENV/
 data/
 
 .coverage
+wattscheduler.db

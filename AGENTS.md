@@ -25,9 +25,14 @@ When working with Python code, use `lsp` for symbol resolution, type information
 
 ## Build Commands
 
-### Install Dependencies
+### Create and activate a virtual environment:
+
+python -m venv .venv
+source .venv/bin/activate
+
+### Install dependencies:
 ```bash
-pip install -e ".[dev]"
+.venv/bin/python/python -m pip install -e ".[dev]"
 ```
 
 ### Run Development Server
