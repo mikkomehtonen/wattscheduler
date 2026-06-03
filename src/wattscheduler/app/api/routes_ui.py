@@ -1,12 +1,4 @@
 from fastapi import APIRouter, Response
-from datetime import datetime, timedelta, timezone
-from wattscheduler.app.core.models import PricePoint
-from wattscheduler.app.core.optimizer import find_cheapest_windows
-from wattscheduler.app.infra.cache import CacheStore
-from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
-from wattscheduler.app.infra.price_providers import CachedPriceProvider, PriceProvider
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any
 
 router = APIRouter()
 

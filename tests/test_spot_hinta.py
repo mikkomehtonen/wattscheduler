@@ -1,7 +1,7 @@
-import pytest
 from datetime import datetime, timezone
 from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
-from wattscheduler.app.core.models import PricePoint
+import urllib.request
+
 
 # Mock the urllib request to avoid actual API calls
 class MockResponse:
@@ -9,20 +9,20 @@ class MockResponse:
         self.data = data
 
     def read(self):
-        return self.data.encode('utf-8')
+        return self.data.encode("utf-8")
 
     def close(self):
         pass
 
-# Mock the urllib.request.urlopen to return our test data
-import urllib.request
 
+# Mock the urllib.request.urlopen to return our test data
 original_urlopen = urllib.request.urlopen
+
 
 def mock_urlopen(url):
     # This is test data that matches what the API would return
     # The API returns data in Finnish time (UTC+2), so we need to adjust times accordingly
-    test_data = '''[
+    test_data = """[
         {
             "Rank": 20,
             "DateTime": "2026-02-10T00:00:00+02:00",
@@ -35,8 +35,9 @@ def mock_urlopen(url):
             "PriceNoTax": 0.11269,
             "PriceWithTax": 0.14143
         }
-    ]'''
+    ]"""
     return MockResponse(test_data)
+
 
 def test_spot_hinta_provider():
     """Test that SpotHintaPriceProvider correctly parses mock API data."""
@@ -64,6 +65,7 @@ def test_spot_hinta_provider():
     finally:
         # Restore original function
         urllib.request.urlopen = original_urlopen
+
 
 if __name__ == "__main__":
     test_spot_hinta_provider()

@@ -1,7 +1,10 @@
 from typing import List
 from .models import PricePoint, Window
 
-def find_cheapest_windows(price_points: List[PricePoint], duration_minutes: int, top_n: int = 1) -> List[Window]:
+
+def find_cheapest_windows(
+    price_points: List[PricePoint], duration_minutes: int, top_n: int = 1
+) -> List[Window]:
     """
     Find the cheapest contiguous windows from 15-minute price points.
 
@@ -31,7 +34,7 @@ def find_cheapest_windows(price_points: List[PricePoint], duration_minutes: int,
 
     # Slide through the price points to find all possible windows
     for i in range(len(price_points) - intervals + 1):
-        window_points = price_points[i:i + intervals]
+        window_points = price_points[i : i + intervals]
 
         # Calculate total and average prices for this window
         total_price = sum(point.price for point in window_points)

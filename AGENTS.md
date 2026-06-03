@@ -140,6 +140,35 @@ All configurations are defined in pyproject.toml:
 - Test paths: tests/
 - Development dependencies: pytest, ruff, mypy
 
+## Database
+
+The project uses SQLAlchemy 2.0 with SQLite as the default database backend.
+
+### Database URL
+Set via the `DATABASE_URL` environment variable (default: `sqlite:///./wattscheduler.db`).
+
+For tests, this is automatically overridden to `sqlite:///:memory:`.
+
+### Migrations (Alembic)
+```bash
+# Generate a new migration
+alembic revision --autogenerate -m "description of changes"
+
+# Apply pending migrations
+alembic upgrade head
+
+# Rollback the last migration
+alembic downgrade -1
+
+# Check current migration status
+alembic current
+```
+
+### Key Files
+- `src/wattscheduler/app/infra/db.py` — Engine, `SessionLocal` factory, `get_db()` FastAPI dependency
+- `src/wattscheduler/app/infra/db_models.py` — SQLAlchemy ORM models (Base, PricePointModel)
+- `src/wattscheduler/app/infra/repositories.py` — `SQLAlchemyPriceRepository` (load/save prices)
+
 ## Dependency source of truth
 - only pyproject.toml, never requirements.txt.
 

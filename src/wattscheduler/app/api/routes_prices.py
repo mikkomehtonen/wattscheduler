@@ -1,11 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from datetime import datetime
-from wattscheduler.app.infra.price_providers import PriceProvider, CachedPriceProvider
+from wattscheduler.app.infra.price_providers import CachedPriceProvider
 from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
-from wattscheduler.app.infra.cache import CacheStore
-from wattscheduler.app.core.models import PricePoint
+from wattscheduler.app.infra.repositories import SQLAlchemyPriceRepository
+from wattscheduler.app.infra.db import get_db
 from pydantic import BaseModel
-from typing import List, Any
+from typing import List
 
 router = APIRouter()
 
@@ -15,22 +16,18 @@ class PriceResponseDTO(BaseModel):
     price: float
 
 
-def get_price_provider():
-    """Get the price provider - can be either mock or real data"""
-    # Use real data provider with caching
-    cache_store = CacheStore("default_cache")
+def get_price_provider(db: Session = Depends(get_db)):
+    repo = SQLAlchemyPriceRepository(db)
     real_provider = SpotHintaPriceProvider()
-    # Create cached provider
-    return CachedPriceProvider(real_provider, cache_store, "default")
+    return CachedPriceProvider(real_provider, repo, "default")
 
 
 @router.get("/v1/prices")
-async def get_prices(start: datetime, end: datetime) -> List[PriceResponseDTO]:
-    """Get price data for a time range at 15-minute resolution."""
-    price_provider = get_price_provider()
+async def get_prices(
+    start: datetime, end: datetime, price_provider=Depends(get_price_provider)
+) -> List[PriceResponseDTO]:
     prices = price_provider.get_prices(start, end)
 
-    # Convert to the expected format
     result = []
     for p in prices:
         result.append(PriceResponseDTO(timestamp=p.timestamp, price=p.price))

@@ -14,7 +14,7 @@ Wattscheduler includes:
 
 -   A cleanly structured FastAPI backend
 -   Real-time price fetching from the Finnish Spot-Hinta API
--   Automatic caching of price data
+-   SQLite-backed caching of price data via SQLAlchemy
 -   An optimization engine for cheapest and most expensive windows
 -   A simple browser-based UI with interactive charts
 -   Cost estimation based on appliance power (kW)
@@ -35,7 +35,7 @@ The project is designed to be simple, testable, and extensible.
 -   Frontend time validation (no past start, no invalid ranges)
 -   Modular architecture:
     -   `core` -- optimization logic
-    -   `infra` -- data providers & caching
+    -   `infra` -- data providers, DB models & repository
     -   `api` -- HTTP routes
     -   `static` -- frontend assets
 
@@ -52,11 +52,15 @@ Install dependencies:
 
     pip install -e .[test]
 
+Apply database migrations:
+
+    alembic upgrade head
+
 ------------------------------------------------------------------------
 
 ## Run the Application
 
-    uvicorn app.main:app --reload --port 8080
+    uvicorn wattscheduler.main:app --reload --port 8080
 
 ------------------------------------------------------------------------
 
@@ -102,7 +106,8 @@ Wattscheduler follows a clean separation of concerns:
 -   **Optimizer** -- Pure logic for calculating cheapest windows
 -   **PriceProvider abstraction** -- Allows switching between real and
     mock data
--   **CacheStore** -- Reduces unnecessary external API calls
+-   **PriceRepository** -- SQLAlchemy-backed cache (SQLite) reduces
+    unnecessary external API calls
 -   **FastAPI layer** -- HTTP interface
 -   **Frontend (static)** -- Chart visualization and scheduling UI
 

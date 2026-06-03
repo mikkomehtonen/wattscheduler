@@ -1,10 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from wattscheduler.app.core.models import PricePoint, Window
 from wattscheduler.app.core.optimizer import find_cheapest_windows
-from wattscheduler.app.infra.cache import CacheStore
 from wattscheduler.app.infra.spot_hinta_provider import SpotHintaPriceProvider
 from wattscheduler.app.infra.price_providers import CachedPriceProvider
+from wattscheduler.app.infra.repositories import SQLAlchemyPriceRepository
+from wattscheduler.app.infra.db import get_db
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -37,13 +39,10 @@ class ScheduleResponseDTO(BaseModel):
     currency: str
 
 
-def get_price_provider():
-    """Get the price provider - can be either mock or real data"""
-    # Use real data provider with caching
-    cache_store = CacheStore("default_cache")
+def get_price_provider(db: Session = Depends(get_db)):
+    repo = SQLAlchemyPriceRepository(db)
     real_provider = SpotHintaPriceProvider()
-    # Create cached provider, but handle the type mismatch gracefully
-    return CachedPriceProvider(real_provider, cache_store, "default")
+    return CachedPriceProvider(real_provider, repo, "default")
 
 
 def ceil_to_interval(dt, minutes):
@@ -163,7 +162,9 @@ def calculate_window_costs(
 
 
 @router.post("/v1/schedule")
-async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
+async def schedule_task(
+    request: ScheduleRequestDTO, price_provider=Depends(get_price_provider)
+) -> ScheduleResponseDTO:
     """
     Schedule a task based on electricity prices.
 
@@ -177,11 +178,9 @@ async def schedule_task(request: ScheduleRequestDTO) -> ScheduleResponseDTO:
     Returns:
         Best and worst windows with start/end times and price information
     """
-    # Use request datetime objects directly
     earliest_start = request.earliest_start
     latest_end = request.latest_end
 
-    price_provider = get_price_provider()
     prices = price_provider.get_prices(earliest_start, latest_end)
 
     if not prices:
