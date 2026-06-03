@@ -15,4 +15,4 @@ class PricePointModel(Base):
     timestamp = Column(DateTime, nullable=False)
     price = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("area", "timestamp", name="uq_area_timestamp"),)
+    __table_args__ = (UniqueConstraint("area", "date", "timestamp", name="uq_area_date_timestamp"),)

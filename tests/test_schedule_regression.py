@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
-from fastapi.testclient import TestClient
+import json
 import urllib.request
+
+from fastapi.testclient import TestClient
 
 from wattscheduler.app.main import app
 
@@ -156,8 +158,6 @@ def _build_mock_price_data():
             "PriceWithTax": 0.16000,
         },
     ]
-    import json
-
     return json.dumps(entries)
 
 
@@ -166,8 +166,7 @@ def mock_urlopen(url):
 
 
 def test_schedule_30min_cost_and_window_regression(monkeypatch):
-    original_urlopen = urllib.request.urlopen
-    urllib.request.urlopen = mock_urlopen
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
 
     import wattscheduler.app.api.routes_schedule as routes_schedule
 
@@ -186,27 +185,24 @@ def test_schedule_30min_cost_and_window_regression(monkeypatch):
         "top_n": 1,
     }
 
-    try:
-        resp = client.post("/v1/schedule", json=payload)
-        assert resp.status_code == 200, resp.text
-        data = resp.json()
+    resp = client.post("/v1/schedule", json=payload)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
 
-        assert "best_window" in data
-        result = data["best_window"]
+    assert "best_window" in data
+    result = data["best_window"]
 
-        assert parse_iso(result["start"]) == datetime(2026, 2, 14, 20, 30, tzinfo=timezone.utc)
-        assert parse_iso(result["end"]) == datetime(2026, 2, 14, 21, 0, tzinfo=timezone.utc)
+    assert parse_iso(result["start"]) == datetime(2026, 2, 14, 20, 30, tzinfo=timezone.utc)
+    assert parse_iso(result["end"]) == datetime(2026, 2, 14, 21, 0, tzinfo=timezone.utc)
 
-        expected_total_price = 0.14873 + 0.13992
-        expected_cost = expected_total_price * 2.0 * 0.25
+    expected_total_price = 0.14873 + 0.13992
+    expected_cost = expected_total_price * 2.0 * 0.25
 
-        assert abs(result["total_price"] - expected_total_price) < 1e-9
-        assert abs(result["estimated_cost_eur"] - expected_cost) < 1e-9
+    assert abs(result["total_price"] - expected_total_price) < 1e-9
+    assert abs(result["estimated_cost_eur"] - expected_cost) < 1e-9
 
-        expected_now_cost = (0.18569 + 0.19519) * 2.0 * 0.25
-        assert abs(result["start_now_cost_eur"] - expected_now_cost) < 1e-9
+    expected_now_cost = (0.18569 + 0.19519) * 2.0 * 0.25
+    assert abs(result["start_now_cost_eur"] - expected_now_cost) < 1e-9
 
-        expected_savings = expected_now_cost - expected_cost
-        assert abs(result["savings_vs_now_eur"] - expected_savings) < 1e-9
-    finally:
-        urllib.request.urlopen = original_urlopen
+    expected_savings = expected_now_cost - expected_cost
+    assert abs(result["savings_vs_now_eur"] - expected_savings) < 1e-9

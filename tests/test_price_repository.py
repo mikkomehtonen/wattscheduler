@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from wattscheduler.app.infra.repositories import SQLAlchemyPriceRepository
@@ -71,7 +70,7 @@ class TestSQLAlchemyPriceRepository:
         assert len(day2) == 1
         assert day2[0].price == 15.0
 
-    def test_unique_constraints(self, db_session: Session):
+    def test_save_replaces_existing(self, db_session: Session):
         repo = SQLAlchemyPriceRepository(db_session)
         repo.save_prices(
             "area",
@@ -79,10 +78,13 @@ class TestSQLAlchemyPriceRepository:
             [PricePoint(datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc), 10.0)],
         )
 
-        # duplicate should fail silently (current save_prices commits which would fail)
-        with pytest.raises(Exception):
-            repo.save_prices(
-                "area",
-                "2023-01-01",
-                [PricePoint(datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc), 15.0)],
-            )
+        # Re-saving replaces cached data instead of crashing on unique constraint
+        repo.save_prices(
+            "area",
+            "2023-01-01",
+            [PricePoint(datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc), 15.0)],
+        )
+
+        loaded = repo.load_prices("area", "2023-01-01")
+        assert len(loaded) == 1
+        assert loaded[0].price == 15.0
