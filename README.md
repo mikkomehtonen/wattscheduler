@@ -50,7 +50,7 @@ Create and activate a virtual environment:
 
 Install dependencies:
 
-    pip install -e .[test]
+    python -m pip install -e ".[test]"
 
 Apply database migrations:
 
