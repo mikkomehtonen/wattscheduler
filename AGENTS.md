@@ -1,257 +1,42 @@
 # Wattscheduler Developer Guidelines
 
-## Project Overview
-This is a Python project for electricity price based task scheduling using FastAPI, designed for managing tasks based on electricity pricing data.
+Python project for electricity price based task scheduling using FastAPI, SQLAlchemy (SQLite), and Alembic.
 
-## Build Commands
+## Build & Development
 
-### Create and activate a virtual environment:
-
-python -m venv .venv
-source .venv/bin/activate
-
-### Install dependencies:
-```bash
-.venv/bin/python/python -m pip install -e ".[dev]"
-```
-
-### Run Development Server
-```bash
-uvicorn wattscheduler.main:app --reload
-```
-
-### Running Tests
-Test commands are executed in separate shells, so source .venv/bin/activate doesn’t persist. Do not use pip install -e . or --break-system-packages. Always run tests using venv binaries directly: .venv/bin/python -m pytest tests/ -v
-
-```bash
-# Run all tests
-.venv/bin/python -m pytest tests/ -v
-
-# Run a specific test file
-.venv/bin/python -m pytest tests/test_file.py
-
-# Run a specific test function
-.venv/bin/python -m pytest tests/test_file.py::test_function_name
-
-# Run with coverage
-pytest --cov=src
-
-# Run tests in verbose mode
-pytest -v
-
-# Run tests in quiet mode
-pytest -q
-```
-
-## Linting and Formatting
-
-### Ruff (Code Linting and Formatting)
-```bash
-# Check for linting issues
-ruff check src/
-
-# Auto-fix linting issues
-ruff check src/ --fix
-
-# Format code
-ruff format src/
-```
-
-### Mypy (Type Checking)
-```bash
-# Run type checking
-mypy src/
-
-# Run type checking with strict settings
-mypy src/ --strict
-```
-
-## Code Style Guidelines
-
-### Imports
-- Import standard library modules before third-party modules
-- Import third-party modules before local modules
-- Use explicit relative imports (.) for local modules
-- Group imports by standard library, third-party, and local
-
-### Code Formatting
-- Follow PEP 8 style guide
-- Maximum line length: 100 characters (configured in pyproject.toml)
-- Use 4 spaces for indentation
-- Use snake_case for functions and variables
-- Use PascalCase for classes
-- Use UPPER_CASE for constants
-
-### Naming Conventions
-- Variables: snake_case
-- Functions: snake_case
-- Classes: PascalCase
-- Constants: UPPER_CASE
-- Private methods: _private_method
-
-### Error Handling
-- Use try/except blocks to handle expected errors
-- Raise appropriate exceptions with descriptive messages
-- Use specific exception types when possible
-- Follow the principle of "fail fast"
-
-### Type Hints
-- Add type hints to all function parameters and return values
-- Use `Optional[Type]` or `Union[Type1, Type2]` for complex types
-- Utilize `typing` module for collections (`List`, `Dict`, etc.)
-
-### Documentation
-- Document all public functions with docstrings
-- Use Google-style docstrings for complex functions
-- Add module-level docstrings
-- Comment complex logic sections
-
-## Testing
-- Tests should be in the `tests/` directory
-- Test files should follow naming pattern: `test_*.py`
-- Test function names should follow naming pattern: `test_*`
-- Use pytest fixtures for common test set-up
-- Test both positive and negative cases
-
-## Development Workflow
-1. Create feature branches from main
-2. Run all checks before committing: `ruff check src/ --fix && mypy src/ && pytest`
-3. All commits should pass CI checks
-4. Keep tests updated with code changes
-
-## Configuration
-All configurations are defined in pyproject.toml:
-- Line length: 100 characters
-- Test paths: tests/
-- Development dependencies: pytest, ruff, mypy
+- **Virtual Environment**: `python -m venv .venv` then `source .venv/bin/activate`.
+- **Dependencies**: `pip install -e ".[dev]"` -- the `[dev]` extra contains pytest, ruff, mypy. (README says `.test` but pyproject.toml defines only `[dev]`; trust pyproject.toml.)
+- **Development Server**: `python -m uvicorn wattscheduler.app.main:app --reload --port 8080`. Must run from project root -- static files use a relative path (`src/wattscheduler/app/ui/static`).
+- **Scripts**: `scripts/run.sh` (port 8081) and `scripts/tests.sh` both set `PYTHONPYCACHEPREFIX=.pycache`.
 
 ## Database
 
-The project uses SQLAlchemy 2.0 with SQLite as the default database backend.
+- Default SQLite path: `<project_root>/data/wattscheduler.db` (directory auto-created on import). Override via `DATABASE_URL` env var.
+- **Migrations**: `alembic revision --autogenerate -m "msg"`, then `alembic upgrade head`.
+- Tests use in-memory SQLite with tables created/dropped per-test via conftest -- no alembic needed for tests.
 
-### Database URL
-Set via the `DATABASE_URL` environment variable (default: `sqlite:///./wattscheduler.db`).
+## Testing
 
-For tests, this is automatically overridden to `sqlite:///:memory:`.
+- `.venv/bin/python -m pytest tests/ -v` or just `pytest`.
+- Single test: `.venv/bin/python -m pytest tests/test_file.py::test_name -v`.
+- conftest overrides the `get_db` dependency automatically (autouse fixture). Provides a `db_session` fixture for direct access.
 
-### Migrations (Alembic)
-```bash
-# Generate a new migration
-alembic revision --autogenerate -m "description of changes"
+## Linting & Typechecking
 
-# Apply pending migrations
-alembic upgrade head
+- **Ruff**: `ruff check src/ --fix` and `ruff format src/` (line-length: 100).
+- **Mypy**: `mypy src/`.
 
-# Rollback the last migration
-alembic downgrade -1
+## Architecture
 
-# Check current migration status
-alembic current
-```
+Layers from pure logic to HTTP:
 
-### Key Files
-- `src/wattscheduler/app/infra/db.py` — Engine, `SessionLocal` factory, `get_db()` FastAPI dependency
-- `src/wattscheduler/app/infra/db_models.py` — SQLAlchemy ORM models (Base, PricePointModel)
-- `src/wattscheduler/app/infra/repositories.py` — `SQLAlchemyPriceRepository` (load/save prices)
+| Layer | Path | Role |
+|---|---|---|
+| core | `src/wattscheduler/app/core/` | Pure optimizer, models, PriceRepository protocol (ports) |
+| infra | `src/wattscheduler/app/infra/` | SQLAlchemy models/repo, price providers (Spot-Hinta + cache) |
+| api | `src/wattscheduler/app/api/` | FastAPI routes and dependency wiring (`deps.py`) |
+| ui/static | `src/wattscheduler/app/ui/static/` | Frontend assets served via StaticFiles mount at `/static` |
 
-## Dependency source of truth
-- only pyproject.toml, never requirements.txt.
+Dependency injection in `api/deps.py` wires: DB session -> SQLAlchemyPriceRepository -> SpotHintaPriceProvider -> CachedPriceProvider.
 
-## Build/Lint/Test Commands
-
-### Install Dependencies
-```bash
-python -m pip install -e ".[dev]"
-```
-- Never use pip install --user in this project.
-- Always install into the active virtual environment.
-- Always run pip as python -m pip ...
-
-### Run Development Server
-```bash
-uvicorn wattscheduler.main:app --reload
-```
-
-### Running Tests
-```bash
-# Run all tests
-pytest
-
-# Run a specific test file
-pytest tests/test_file.py
-
-# Run a specific test function
-pytest tests/test_file.py::test_function_name
-
-# Run with coverage
-pytest --cov=src
-
-# Run tests in verbose mode
-pytest -v
-
-# Run tests in quiet mode
-pytest -q
-```
-
-### Linting and Formatting
-
-#### Ruff (Code Linting and Formatting)
-```bash
-# Check for linting issues
-ruff check src/
-
-# Auto-fix linting issues
-ruff check src/ --fix
-
-# Format code
-ruff format src/
-```
-
-#### Mypy (Type Checking)
-```bash
-# Run type checking
-mypy src/
-
-# Run type checking with strict settings
-mypy src/ --strict
-```
-
-## Code Style Guidelines
-
-### Imports
-- Import standard library modules before third-party modules
-- Import third-party modules before local modules
-- Use explicit relative imports (.) for local modules
-- Group imports by standard library, third-party, and local
-
-### Code Formatting
-- Follow PEP 8 style guide
-- Maximum line length: 100 characters (configured in pyproject.toml)
-- Use 4 spaces for indentation
-- Use snake_case for functions and variables
-- Use PascalCase for classes
-- Use UPPER_CASE for constants
-
-### Naming Conventions
-- Variables: snake_case
-- Functions: snake_case
-- Classes: PascalCase
-- Constants: UPPER_CASE
-- Private methods: _private_method
-
-### Error Handling
-- Use try/except blocks to handle expected errors
-- Raise appropriate exceptions with descriptive messages
-- Use specific exception types when possible
-- Follow the principle of "fail fast"
-
-### Type Hints
-- Add type hints to all function parameters and return values
-- Use `Optional[Type]` or `Union[Type1, Type2]` for complex types
-- Utilize `typing` module for collections (`List`, `Dict`, etc.)
-
-### Documentation
-- Document all public functions with docstrings
-- Use Google-style docstrings for complex functions
-- Add module-level docstrings
-- Comment complex logic sections
+Entry point: `src/wattscheduler/app/main:app`. Package layout uses `src/` prefix (setuptools `package-dir = {"" = "src"}`).
