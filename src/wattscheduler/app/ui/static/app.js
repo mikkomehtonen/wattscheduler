@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
         locale: "fi",
         defaultDate: earliest,
         minuteIncrement: 15,
-        minDate: now
+        minDate: earliest
     });
 
     const latestPicker = flatpickr("#latest_end", {
