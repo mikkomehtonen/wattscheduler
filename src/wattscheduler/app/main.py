@@ -17,6 +17,7 @@ app.include_router(ui_router)
 # Serve static files
 app.mount("/static", StaticFiles(directory="src/wattscheduler/app/ui/static"), name="static")
 
+
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon():
     return FileResponse("src/wattscheduler/app/ui/static/favicon.svg")

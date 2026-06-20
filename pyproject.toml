@@ -18,7 +18,8 @@ dependencies = [
   "pydantic",
   "httpx",
   "sqlalchemy",
-  "alembic"
+  "alembic",
+  "tzdata"
 ]
 
 [project.optional-dependencies]
