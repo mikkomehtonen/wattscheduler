@@ -11,7 +11,7 @@ Wattscheduler is a lightweight electricity scheduling tool that determines the c
 - **Schedule API** — `POST /v1/schedule` returns best and worst windows with savings vs. running now.
 - **Prices API** — `GET /v1/prices` returns raw price points for a time range.
 - **Prices timezone parameter** — `GET /v1/prices` accepts an optional `timezone` query parameter (IANA name) so callers can declare the timezone their naive `start`/`end` are expressed in; naive values are interpreted in that zone and converted to UTC before querying ([story](stories/001-prices-timezone-param/story.md)).
-- **Browser UI** — static HTML/JS app with Flatpickr date pickers and a Chart.js bar chart highlighting the best and worst windows.
+- **Browser UI** — static HTML/JS app with Flatpickr date pickers and a Chart.js bar chart highlighting the best and worst windows. The page heading shows the favicon logo to the left of the title text ([story](stories/002-add-logo-to-title/story.md)).
 - **Health check** — `GET /health` for container liveness.
 - **Docker** — ships a `Dockerfile` (python:3.12-slim) with a health check.
 

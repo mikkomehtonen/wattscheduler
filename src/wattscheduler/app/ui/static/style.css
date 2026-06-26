@@ -14,6 +14,12 @@ h1 {
   letter-spacing: 0.5px;
 }
 
+.title-logo {
+  height: 1em;
+  vertical-align: middle;
+  margin-right: 0.3em;
+}
+
 .chart-container {
     width: 100%;
     height: 420px;

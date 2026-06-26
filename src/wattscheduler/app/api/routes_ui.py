@@ -19,7 +19,7 @@ async def get_home_page():
         <html>
         <head><title>Electricity Scheduler</title></head>
         <body>
-            <h1>Electricity Scheduler</h1>
+            <h1><img src="/favicon.svg" alt="Wattscheduler logo" style="height: 1em; vertical-align: middle; margin-right: 0.3em">Electricity Scheduler</h1>
             <p>Application is running!</p>
         </body>
         </html>
