@@ -9,7 +9,15 @@
         "question": "allow",
         "todowrite": "allow",
         "todoread": "allow",
-        "bash": "ask",
+        "bash": {
+            "*": "ask",
+            "git *": "allow",
+            "npm *": "allow",
+            "grep *": "allow",
+            "echo *": "allow",
+            "ls *": "allow",
+            "peck *": "allow"
+        },
         "webfetch": "ask",
         "lsp": "allow"
     },
