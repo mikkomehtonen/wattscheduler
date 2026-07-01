@@ -17,3 +17,9 @@
 **Area**: testing
 **What happened**: The timezone tests used `monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)` to return Spot-Hinta-shaped JSON, which exercises the real `CachedPriceProvider` → `SpotHintaPriceProvider` → `to_utc_if_naive` path rather than mocking the provider itself.
 **Takeaway**: For price-provider behavior tests, patch `urllib.request.urlopen` with a minimal `MockResponse` returning the expected Spot-Hinta JSON. This validates the full provider stack and matches the existing regression-test pattern.
+
+## Construct the next calendar midnight explicitly for timezone-aware day buckets
+**Date**: 2026-07-01
+**Area**: architecture
+**What happened**: `CachedPriceProvider` originally computed the end of a Helsinki-day bucket with `start_local + timedelta(days=1)`. While this happened to produce the right wall-clock span on 2026 DST days, it relies on subtle `zoneinfo` + `timedelta` behavior and was flagged as fragile in code review.
+**Takeaway**: When bucketing by a source-local calendar day, build the next local midnight with `datetime.combine(local_date + timedelta(days=1), datetime.min.time(), tzinfo=source_tz)` instead of adding a timedelta to an aware datetime. It is clearer and robust across DST transitions.

@@ -5,7 +5,7 @@ Wattscheduler is a lightweight electricity scheduling tool that determines the c
 ## Features
 
 - **Spot-price fetching** — pulls real 15-minute electricity prices from the Finnish Spot-Hinta API (`https://api.spot-hinta.fi`).
-- **Price caching** — SQLite-backed cache (SQLAlchemy) avoids redundant external API calls; cached per area and date.
+- **Price caching** — SQLite-backed cache (SQLAlchemy) avoids redundant external API calls; cached per area and source-local (Helsinki) day so each bucket matches the Spot-Hinta publication unit and spans the UTC-midnight boundary without dropping hours ([story](stories/004-fix-timezone-price-storage/story.md)).
 - **Cheapest / most expensive windows** — pure optimizer finds the cheapest and most expensive contiguous windows for a given duration.
 - **Cost estimation** — estimates EUR cost from window price, appliance power (kW), and the 15-minute interval.
 - **Schedule API** — `POST /v1/schedule` returns best and worst windows with savings vs. running now.
@@ -27,7 +27,7 @@ Wattscheduler is a lightweight electricity scheduling tool that determines the c
 
 - **Naive timestamps without a `timezone` parameter are treated as UTC.** This is the legacy behavior of `SpotHintaPriceProvider`; callers who mean local time must send an offset or use the new `timezone` parameter.
 - **`POST /v1/schedule` does not yet accept a `timezone` parameter.** It shares the price provider with `/v1/prices` and has the same naive/aware ambiguity for `earliest_start`/`latest_end`; a follow-up story is tracked separately.
-- **Price cache is keyed by the query day, not a global UTC day.** Requests for the same physical UTC window expressed via different timezones may populate separate cache buckets; this is not a correctness issue but can cause redundant fetches.
+- **Price cache is keyed by the Spot-Hinta publication day (Europe/Helsinki calendar date), not the UTC date.** A Helsinki day spans two UTC dates (e.g. summer EEST: Helsinki day D = UTC D−1 21:00 → D 20:45), so a single cache bucket stores prices whose UTC timestamps cross UTC midnight. This matches the API's publication unit and prevents the missing-hours bug where UTC-date keying clipped each Helsinki day at the UTC boundary.
 - **Fixed UTC offsets and timezone abbreviations are rejected** by the `timezone` parameter; only IANA names (e.g. `Europe/Helsinki`) are accepted, for DST correctness.
 - **Spot-Hinta only provides today and day-forward data**; requests beyond that range return no prices.
 - **Returned timestamps are always UTC-aware**; the frontend localizes them for display.

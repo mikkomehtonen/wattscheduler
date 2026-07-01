@@ -1,5 +1,6 @@
 from typing import List
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
+from zoneinfo import ZoneInfo
 from wattscheduler.app.core.models import PricePoint
 from wattscheduler.app.core.ports import PriceRepository
 
@@ -30,61 +31,52 @@ class MockPriceProvider(PriceProvider):
 
 class CachedPriceProvider(PriceProvider):
     def __init__(
-        self, inner_provider: PriceProvider, repository: PriceRepository, area: str = "default"
+        self,
+        inner_provider: PriceProvider,
+        repository: PriceRepository,
+        area: str = "default",
+        source_tz: ZoneInfo = ZoneInfo("Europe/Helsinki"),
     ):
         self.inner_provider = inner_provider
         self.repository = repository
         self.area = area
+        self.source_tz = source_tz
 
-    def _date_str(self, dt: datetime) -> str:
-        return dt.date().isoformat()
+    def _to_utc(self, dt: datetime) -> datetime:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
 
-    def _get_prices_for_date(self, date: datetime) -> List[PricePoint]:
-        date_str = self._date_str(date)
+    def _get_prices_for_local_date(self, local_date: date) -> List[PricePoint]:
+        date_str = local_date.isoformat()
         prices = self.repository.load_prices(self.area, date_str)
-
         if not prices:
-            start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_of_day = start_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
-            prices = self.inner_provider.get_prices(start_of_day, end_of_day)
+            start_local = datetime(
+                local_date.year, local_date.month, local_date.day, 0, 0, tzinfo=self.source_tz
+            )
+            next_local_date = local_date + timedelta(days=1)
+            end_local = datetime(
+                next_local_date.year,
+                next_local_date.month,
+                next_local_date.day,
+                0,
+                0,
+                tzinfo=self.source_tz,
+            )
+            prices = self.inner_provider.get_prices(start_local, end_local)
             self.repository.save_prices(self.area, date_str, prices)
-
         return prices
 
     def get_prices(self, earliest_start: datetime, latest_end: datetime) -> List[PricePoint]:
-        start_date = earliest_start.date()
-        end_date = latest_end.date()
-
-        all_prices = []
-
-        current_date = start_date
-        while current_date <= end_date:
-            start_of_day = datetime.combine(current_date, datetime.min.time())
-            if hasattr(earliest_start, "tzinfo") and earliest_start.tzinfo is not None:
-                start_of_day = start_of_day.replace(tzinfo=earliest_start.tzinfo)
-            prices = self._get_prices_for_date(start_of_day)
-            filtered_prices = []
-            for p in prices:
-                point_timestamp = p.timestamp
-                try:
-                    if (earliest_start.tzinfo is None) == (point_timestamp.tzinfo is None):
-                        if earliest_start <= point_timestamp <= latest_end:
-                            filtered_prices.append(p)
-                    else:
-                        if point_timestamp.tzinfo is not None:
-                            point_naive = point_timestamp.replace(tzinfo=None)
-                            if earliest_start <= point_naive <= latest_end:
-                                filtered_prices.append(p)
-                        else:
-                            point_aware = point_timestamp.replace(tzinfo=earliest_start.tzinfo)
-                            if earliest_start <= point_aware <= latest_end:
-                                filtered_prices.append(p)
-                except TypeError:
-                    if earliest_start <= point_timestamp <= latest_end:
-                        filtered_prices.append(p)
-            all_prices.extend(filtered_prices)
-            current_date += timedelta(days=1)
-
-        all_prices.sort(key=lambda p: p.timestamp)
-
-        return all_prices
+        es = self._to_utc(earliest_start)
+        le = self._to_utc(latest_end)
+        start_local_date = es.astimezone(self.source_tz).date()
+        end_local_date = le.astimezone(self.source_tz).date()
+        all_prices: List[PricePoint] = []
+        current = start_local_date
+        while current <= end_local_date:
+            all_prices.extend(self._get_prices_for_local_date(current))
+            current += timedelta(days=1)
+        filtered = [p for p in all_prices if es <= p.timestamp <= le]
+        filtered.sort(key=lambda p: p.timestamp)
+        return filtered
