@@ -238,7 +238,9 @@ function createChart(prices, bestWindow, worstWindow, duration_minutes) {
                     layer: -1,
                     ticks: {
                         callback: function (value, index, ticks) {
-                            return (value * 100).toFixed(0);
+                            var sntValues = ticks.map(function (t) { return t.value * 100; });
+                            var decimals = chooseYAxisDecimals(sntValues);
+                            return (value * 100).toFixed(decimals);
                         }
                     }
                 }

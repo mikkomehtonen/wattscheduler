@@ -2,3 +2,4 @@
 set -euo pipefail
 export PYTHONPYCACHEPREFIX=.pycache
 python -m pytest tests -v
+node --test tests/js/*.test.js

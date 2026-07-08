@@ -13,6 +13,7 @@ Wattscheduler is a lightweight electricity scheduling tool that determines the c
 - **Prices timezone parameter** — `GET /v1/prices` accepts an optional `timezone` query parameter (IANA name) so callers can declare the timezone their naive `start`/`end` are expressed in; naive values are interpreted in that zone and converted to UTC before querying ([story](stories/001-prices-timezone-param/story.md)).
 - **Browser UI** — static HTML/JS app with Flatpickr date pickers and a Chart.js bar chart highlighting the best and worst windows. The page heading shows the favicon logo to the left of the title text ([story](stories/002-add-logo-to-title/story.md)).
 - **Configurable logo link** — the heading logo links to the URL in the `LOGO_LINK_URL` environment variable (same-tab navigation); when the variable is unset or empty the logo remains a plain, non-clickable image ([story](stories/003-logo-link-env/story.md)).
+- **Chart Y-axis decimal adaptation** — the price chart's Y-axis labels switch from 0 to 1 decimal place when the 0-decimal labels would collide (e.g. a cheap day where all prices round to the same integer snt/kWh), keeping the axis readable; capped at 1 decimal ([story](stories/005-chart-yaxis-decimals/story.md)).
 - **Health check** — `GET /health` for container liveness.
 - **Docker** — ships a `Dockerfile` (python:3.12-slim) with a health check.
 

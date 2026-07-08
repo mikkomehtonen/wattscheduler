@@ -20,6 +20,7 @@ Python project for electricity price based task scheduling using FastAPI, SQLAlc
 - `.venv/bin/python -m pytest tests/ -v` or just `pytest`.
 - Single test: `.venv/bin/python -m pytest tests/test_file.py::test_name -v`.
 - conftest overrides the `get_db` dependency automatically (autouse fixture). Provides a `db_session` fixture for direct access.
+- **Full suite**: `scripts/tests.sh` runs pytest then `node --test tests/js/*.test.js`. Node.js is required for the JS tests; they use Node's built-in `node:test` runner (no `npm install` needed).
 
 ## Linting & Typechecking
 

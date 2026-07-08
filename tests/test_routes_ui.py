@@ -102,3 +102,33 @@ def test_stylesheet_has_title_logo_rule():
     assert re.search(r"vertical-align\s*:", rule_body) is not None, (
         "Expected vertical-align declaration"
     )
+
+
+def test_home_page_loads_chart_axis_before_app_js(monkeypatch):
+    monkeypatch.delenv("LOGO_LINK_URL", raising=False)
+    resp = client.get("/")
+    assert resp.status_code == 200, resp.text
+
+    body = resp.text
+    chart_axis_match = re.search(r'<script\s+src="/static/chart_axis\.js">', body)
+    app_js_match = re.search(r'<script\s+src="/static/app\.js">', body)
+    assert chart_axis_match is not None, "Expected chart_axis.js script tag"
+    assert app_js_match is not None, "Expected app.js script tag"
+    assert chart_axis_match.start() < app_js_match.start(), (
+        "chart_axis.js must be loaded before app.js"
+    )
+
+
+def test_chart_axis_js_serves_helper():
+    resp = client.get("/static/chart_axis.js")
+    assert resp.status_code == 200, resp.text
+    assert "chooseYAxisDecimals" in resp.text
+
+
+def test_app_js_uses_dynamic_decimals():
+    resp = client.get("/static/app.js")
+    assert resp.status_code == 200, resp.text
+
+    js = resp.text
+    assert "chooseYAxisDecimals" in js, "Expected app.js to reference chooseYAxisDecimals"
+    assert "toFixed(decimals)" in js, "Expected dynamic toFixed(decimals) in Y-axis callback"
