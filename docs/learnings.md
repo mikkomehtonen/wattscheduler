@@ -23,3 +23,9 @@
 **Area**: architecture
 **What happened**: `CachedPriceProvider` originally computed the end of a Helsinki-day bucket with `start_local + timedelta(days=1)`. While this happened to produce the right wall-clock span on 2026 DST days, it relies on subtle `zoneinfo` + `timedelta` behavior and was flagged as fragile in code review.
 **Takeaway**: When bucketing by a source-local calendar day, build the next local midnight with `datetime.combine(local_date + timedelta(days=1), datetime.min.time(), tzinfo=source_tz)` instead of adding a timedelta to an aware datetime. It is clearer and robust across DST transitions.
+
+## A non-empty price-cache bucket is not necessarily complete
+**Date**: 2026-09-16
+**Area**: architecture
+**What happened**: The UI showed no prices for the current day because the Helsinki-day cache bucket held only 4 of 96 slots. The Spot-Hinta `TodayAndDayForward` API can return a partially published day while day-ahead prices roll over, and `CachedPriceProvider` treated any non-empty bucket as complete (`if not prices:`), so the missing slots were never fetched.
+**Takeaway**: When caching an external day-bucket, validate completeness (a Helsinki day has 96 slots, or 92/100 on DST days) before trusting it, and refetch/merge incomplete buckets. Never assume "non-empty" means "complete" for a source that publishes incrementally.

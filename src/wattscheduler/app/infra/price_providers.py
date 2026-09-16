@@ -47,23 +47,49 @@ class CachedPriceProvider(PriceProvider):
             return dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc)
 
+    def _local_day_bounds(self, local_date: date) -> tuple[datetime, datetime]:
+        start_local = datetime(
+            local_date.year, local_date.month, local_date.day, 0, 0, tzinfo=self.source_tz
+        )
+        next_local_date = local_date + timedelta(days=1)
+        end_local = datetime(
+            next_local_date.year,
+            next_local_date.month,
+            next_local_date.day,
+            0,
+            0,
+            tzinfo=self.source_tz,
+        )
+        return start_local, end_local
+
+    def _expected_slot_count(self, start_local: datetime, end_local: datetime) -> int:
+        """Number of 15-minute slots in the local day (96, or 92/100 on DST days)."""
+        span = end_local.astimezone(timezone.utc) - start_local.astimezone(timezone.utc)
+        return int(span.total_seconds() // 900)
+
     def _get_prices_for_local_date(self, local_date: date) -> List[PricePoint]:
         date_str = local_date.isoformat()
         prices = self.repository.load_prices(self.area, date_str)
-        if not prices:
-            start_local = datetime(
-                local_date.year, local_date.month, local_date.day, 0, 0, tzinfo=self.source_tz
-            )
-            next_local_date = local_date + timedelta(days=1)
-            end_local = datetime(
-                next_local_date.year,
-                next_local_date.month,
-                next_local_date.day,
-                0,
-                0,
-                tzinfo=self.source_tz,
-            )
-            prices = self.inner_provider.get_prices(start_local, end_local)
+        start_local, end_local = self._local_day_bounds(local_date)
+        # A non-empty bucket is not necessarily complete: the Spot-Hinta API can
+        # return a partially published day (e.g. while day-ahead prices are being
+        # rolled over). Only trust a bucket that covers the whole local day;
+        # otherwise refetch and merge by timestamp so cached slots are never lost.
+        if len(prices) >= self._expected_slot_count(start_local, end_local):
+            return prices
+        try:
+            fetched = self.inner_provider.get_prices(start_local, end_local)
+        except Exception:
+            # Upstream unavailable: serve the partial cache rather than failing
+            # the request. An empty bucket still propagates the error.
+            if prices:
+                return prices
+            raise
+        cached = {p.timestamp: p for p in prices}
+        merged = dict(cached)
+        merged.update({p.timestamp: p for p in fetched})
+        if merged != cached:
+            prices = sorted(merged.values(), key=lambda p: p.timestamp)
             self.repository.save_prices(self.area, date_str, prices)
         return prices
 
