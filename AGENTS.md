@@ -13,6 +13,7 @@ Python project for electricity price based task scheduling using FastAPI, SQLAlc
 
 - Default SQLite path: `<project_root>/data/wattscheduler.db` (directory auto-created on import). Override via `DATABASE_URL` env var.
 - **Migrations**: `alembic revision --autogenerate -m "msg"`, then `alembic upgrade head`.
+- The Docker image runs `alembic upgrade head` before starting uvicorn (`Dockerfile` CMD), so container deploys self-migrate; a failed migration aborts startup.
 - Tests use in-memory SQLite with tables created/dropped per-test via conftest -- no alembic needed for tests.
 
 ## Testing
