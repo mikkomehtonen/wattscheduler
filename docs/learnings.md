@@ -29,3 +29,8 @@
 **Area**: architecture
 **What happened**: The UI showed no prices for the current day because the Helsinki-day cache bucket held only 4 of 96 slots. The Spot-Hinta `TodayAndDayForward` API can return a partially published day while day-ahead prices roll over, and `CachedPriceProvider` treated any non-empty bucket as complete (`if not prices:`), so the missing slots were never fetched.
 **Takeaway**: When caching an external day-bucket, validate completeness (a Helsinki day has 96 slots, or 92/100 on DST days) before trusting it, and refetch/merge incomplete buckets. Never assume "non-empty" means "complete" for a source that publishes incrementally.
+## Triage code-review findings against the story before fixing
+**Date**: 2026-10-07
+**Area**: workflow
+**What happened**: On story 006, the code reviewer failed findings that the story explicitly mandated or accepted (probe heuristic `payload.length > 0`, clamp-to-start behavior, "no new backend endpoint", "no cache-semantics changes"). Fixing them would have broken acceptance criteria the acceptance reviewer verifies. Escalated; the orchestrator overrode the reviewer and the decision was recorded in the story's Notes.
+**Takeaway**: When a code-review finding contradicts a story's explicit AC or Out-of-Scope list, do not "fix" it silently — fix only the story-compatible findings, then escalate the conflict for an orchestrator decision. Record accepted trade-offs in the story file so later review passes don't re-litigate them.

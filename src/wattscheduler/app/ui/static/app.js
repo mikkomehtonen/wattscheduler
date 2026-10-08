@@ -2,13 +2,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const now = new Date();
 
-    const earliest = new Date(now);
-    earliest.setSeconds(0, 0);
-    const m = earliest.getMinutes();
-    earliest.setMinutes(Math.ceil(m / 15) * 15);
-
-    const latest = new Date(earliest);
-    latest.setHours(latest.getHours() + 24);
+    const earliest = computeDefaultStart(now);
+    // Provisional default: end of current day; extended to end of next day
+    // below once the probe confirms next-day prices are published.
+    const latest = computeDefaultEnd(now, false);
 
     const earliestPicker = flatpickr("#earliest_start", {
         enableTime: true,
@@ -42,6 +39,28 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // Probe whether the next local day's prices are published; if so, extend
+    // the end picker's default to the end of the next day. On any failure
+    // (network, non-2xx, malformed payload) keep the end-of-current-day default.
+    const probeRange = nextDayProbeRange(now);
+    fetch(`/v1/prices?start=${probeRange.start.toISOString()}&end=${probeRange.end.toISOString()}`)
+        .then(function (response) {
+            if (!response.ok) return null;
+            return response.json();
+        })
+        .then(function (payload) {
+            if (!nextDayPricesAvailable(payload)) return;
+            // Do not clobber a manual selection made while the probe was in flight.
+            if (latestPicker.selectedDates.length > 0 &&
+                latestPicker.selectedDates[0].getTime() !== latest.getTime()) {
+                return;
+            }
+            latestPicker.setDate(computeDefaultEnd(now, true), false);
+        })
+        .catch(function (err) {
+            console.debug('price probe skipped', err);
+        });
 });
 
 document.getElementById('scheduleForm').addEventListener('submit', async function (e) {
