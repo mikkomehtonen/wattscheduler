@@ -13,7 +13,7 @@ tools:
   grep: false
   glob: false
   skill: false
-  question: false
+  question: true
 ---
 
 <role>
