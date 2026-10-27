@@ -34,3 +34,20 @@
 **Area**: workflow
 **What happened**: On story 006, the code reviewer failed findings that the story explicitly mandated or accepted (probe heuristic `payload.length > 0`, clamp-to-start behavior, "no new backend endpoint", "no cache-semantics changes"). Fixing them would have broken acceptance criteria the acceptance reviewer verifies. Escalated; the orchestrator overrode the reviewer and the decision was recorded in the story's Notes.
 **Takeaway**: When a code-review finding contradicts a story's explicit AC or Out-of-Scope list, do not "fix" it silently — fix only the story-compatible findings, then escalate the conflict for an orchestrator decision. Record accepted trade-offs in the story file so later review passes don't re-litigate them.
+
+---
+
+## Regex source-inspection tests must encode composition, not substrings
+**Date**: 2026-10-27
+**Area**: testing
+**What happened**: On story 007, the code reviewer failed a test whose assertion was a file-wide substring match for `.finally(loadResults)`: it passes identically if the wiring is attached to the wrong promise in the chain (the raw fetch instead of the terminal `.catch`), which is exactly the bug class the test claims to prevent.
+**Takeaway**: When asserting `app.js` wiring by regex, anchor the match to the whole construct (e.g. `const probeRange[\s\S]*?\.finally\(\s*loadResults\s*\)`) and assert the required parts (`.catch(`, `setDate(`) sit inside that span. The reviewer mutation-checks regexes: ask "does this fail if the wiring moves to the wrong place?" before submitting.
+---
+
+## Auto-invoked app.js flows need full try/catch plus a latest-run sequence id
+**Date**: 2026-10-27
+**Area**: architecture
+**What happened**: Making the submit-handler body auto-run via `.finally(loadResults)` drew blocking review findings: code outside the body's try could reject unobserved into the promise chain, and auto-run + manual submit race with "last response lands" semantics.
+**Takeaway**: Any app.js routine that runs unprompted (page load, timers) must keep its entire body inside one try/catch (never let it reject through .then/.finally) and claim a module-level monotonic run id, dropping DOM writes on both success and error paths when superseded. Reviewers treat click-only safety assumptions as invalid for auto-run code.
+---
+

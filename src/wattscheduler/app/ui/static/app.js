@@ -60,40 +60,49 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(function (err) {
             console.debug('price probe skipped', err);
-        });
+        })
+        // Auto-load the results once the probe settles (success or failure),
+        // after the picker defaults are finalized by the setDate above.
+        // loadResults never rejects (whole body is in its try/catch), so
+        // .finally cannot leak an unhandled rejection.
+        .finally(loadResults);
 });
 
-document.getElementById('scheduleForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
+// Monotonic run id so overlapping runs (auto-load + a manual submit pressed
+// while the auto-search is in flight) cannot let a stale response overwrite
+// the newest render: every DOM write checks it still owns the latest run.
+let searchRunId = 0;
 
-    const formData = new FormData(this);
-    const duration_minutes = parseInt(formData.get('duration_minutes'));
-    const power_kw = parseFloat(formData.get('power_kw'));
+async function loadResults() {
+    const runId = ++searchRunId;
 
-    // Get Flatpickr instances and their selected dates or fallback to default dates
-    const earliestPicker = document.getElementById("earliest_start")._flatpickr;
-    const latestPicker = document.getElementById("latest_end")._flatpickr;
-
-    const earliest_start = earliestPicker.selectedDates.length > 0
-        ? earliestPicker.selectedDates[0]
-        : new Date(document.getElementById("earliest_start").value);
-    const latest_end = latestPicker.selectedDates.length > 0
-        ? latestPicker.selectedDates[0]
-        : new Date(document.getElementById("latest_end").value);
-
-    if (!earliest_start || !latest_end) {
-        alert("Please select valid start and end times");
-        return;
-    }
-
-    // Convert dates to ISO format for API calls
-    const startStr = earliest_start.toISOString();
-    const endStr = latest_end.toISOString();
-
-    // Hide results initially
-    document.getElementById('results').style.display = 'none';
-
+    // The whole body sits in the try/catch so loadResults never rejects:
+    // picker/FormData reads on page load fail into the shared catch and the
+    // visible error card instead of an unhandled rejection.
     try {
+        const formData = new FormData(document.getElementById('scheduleForm'));
+        const duration_minutes = parseInt(formData.get('duration_minutes'));
+        const power_kw = parseFloat(formData.get('power_kw'));
+
+        // Get Flatpickr instances and their selected dates or fallback to default dates
+        const earliestPicker = document.getElementById("earliest_start")._flatpickr;
+        const latestPicker = document.getElementById("latest_end")._flatpickr;
+
+        const earliest_start = earliestPicker.selectedDates.length > 0
+            ? earliestPicker.selectedDates[0]
+            : new Date(document.getElementById("earliest_start").value);
+        const latest_end = latestPicker.selectedDates.length > 0
+            ? latestPicker.selectedDates[0]
+            : new Date(document.getElementById("latest_end").value);
+
+        // Convert dates to ISO format for API calls; an Invalid Date throws
+        // here and lands in the shared catch below (no modal alert on load).
+        const startStr = earliest_start.toISOString();
+        const endStr = latest_end.toISOString();
+
+        // Hide results initially
+        document.getElementById('results').style.display = 'none';
+
         // Get price data
         const pricesResponse = await fetch(`/v1/prices?start=${startStr}&end=${endStr}`);
         const prices = await pricesResponse.json();
@@ -118,17 +127,27 @@ document.getElementById('scheduleForm').addEventListener('submit', async functio
 
         const scheduleData = await scheduleResponse.json();
 
+        // A newer run superseded this one while its requests were in flight;
+        // dropping the stale render keeps the newest form values on screen.
+        if (runId !== searchRunId) return;
+
         // Display results
         displayResults(prices, scheduleData);
 
         // Show results card
         document.getElementById('results').style.display = 'block';
     } catch (error) {
+        if (runId !== searchRunId) return;
         console.error('Error:', error);
         document.getElementById('summary').innerHTML = '<p>Error processing request</p>';
         // Show results card even on error
         document.getElementById('results').style.display = 'block';
     }
+}
+
+document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    loadResults();
 });
 
 function displayResults(prices, scheduleData) {
